@@ -30,6 +30,7 @@
     "url": "https://github.com/speechos-org/speechos/issues"
   },
   "scripts": {
+    "prepare": "npm run build",
     "build": "rollup -c rollup.config.js",
     "dev": "rollup -c rollup.config.js --watch",
     "dev:iife": "rollup -c rollup.config.js --watch",

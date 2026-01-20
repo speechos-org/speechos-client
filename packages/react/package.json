@@ -30,6 +30,7 @@
     "url": "https://github.com/speechos-org/speechos/issues"
   },
   "scripts": {
+    "prepare": "npm run build",
     "build": "tsdown",
     "dev": "tsdown --watch",
     "type-check": "tsc --noEmit",
