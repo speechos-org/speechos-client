@@ -22,12 +22,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/speechos-org/speechos.git",
-    "directory": "speechos-client/packages/react"
+    "url": "git+ssh://git@github.com/speechos-org/speechos-client.git",
+    "directory": "packages/react"
   },
   "homepage": "https://speechos.ai",
   "bugs": {
-    "url": "https://github.com/speechos-org/speechos/issues"
+    "url": "https://github.com/speechos-org/speechos-client/issues"
   },
   "scripts": {
     "prepare": "npm run build",

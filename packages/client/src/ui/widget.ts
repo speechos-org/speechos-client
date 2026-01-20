@@ -19,6 +19,8 @@ import {
   getBackend,
   type SpeechOSState,
   type UnsubscribeFn,
+  type CommandResult,
+  type SpeechOSEventMap,
 } from "@speechos/core";
 import { getClientConfig } from "../config.js";
 import { getSessionSettings } from "../speechos.js";
@@ -150,7 +152,7 @@ export class SpeechOSWidget extends LitElement {
     });
     document.body.appendChild(this.modalElement);
 
-    this.stateUnsubscribe = state.subscribe((newState) => {
+    this.stateUnsubscribe = state.subscribe((newState: SpeechOSState) => {
       if (!newState.isVisible || !newState.isExpanded) {
         this.settingsOpen = false;
       }
@@ -163,7 +165,7 @@ export class SpeechOSWidget extends LitElement {
       this.updatePosition();
     });
 
-    this.errorEventUnsubscribe = events.on("error", (payload) => {
+    this.errorEventUnsubscribe = events.on("error", (payload: SpeechOSEventMap["error"]) => {
       if (
         this.widgetState.recordingState !== "idle" &&
         this.widgetState.recordingState !== "error"
@@ -454,7 +456,7 @@ export class SpeechOSWidget extends LitElement {
       const config = getConfig();
       const backend = getBackend();
       try {
-        const transcription = await this.withMinDisplayTime(
+        const transcription: string = await this.withMinDisplayTime(
           backend.stopVoiceSession(),
           300
         );
@@ -786,7 +788,7 @@ export class SpeechOSWidget extends LitElement {
     const originalContent = this.getElementContent(this.editTargetElement);
     const backend = getBackend();
     try {
-      const editedText = await this.withMinDisplayTime(
+      const editedText: string = await this.withMinDisplayTime(
         backend.requestEditText(originalContent),
         300
       );
@@ -847,7 +849,7 @@ export class SpeechOSWidget extends LitElement {
     const backend = getBackend();
 
     try {
-      const result = await this.withMinDisplayTime(
+      const result: CommandResult | null = await this.withMinDisplayTime(
         backend.requestCommand(commands),
         300
       );

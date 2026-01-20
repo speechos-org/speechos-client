@@ -21,6 +21,14 @@ changeset: ## Create a new changeset for release
 version: ## Apply changesets and bump versions (run before release PR)
 	@npx changeset version
 
+release: ## Build and publish packages to npm (requires NPM_TOKEN env var)
+	@npm run build
+	@npx changeset publish
+
+release-dry-run: ## Show what would be published without actually publishing
+	@npm run build
+	@npx changeset status
+
 # Development
 certs: ## Generate SSL certificates for test page
 	@npm run generate-certs
