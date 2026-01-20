@@ -1,5 +1,19 @@
 # @speechos/client
 
+## 0.2.3
+
+### Patch Changes
+
+- b9e25b9: Fixed ESM build for proper browser compatibility:
+
+  - Changed `sideEffects` to `true` to preserve custom element registration
+  - Switched ESM build from tsdown to Rollup for proper TypeScript decorator compilation
+  - Bundled Lit into ESM output to avoid version conflicts when used with Vite
+
+- 3cf5ade: Initial beta release
+- Updated dependencies [3cf5ade]
+  - @speechos/core@0.2.2
+
 ## 0.2.1
 
 ### Patch Changes

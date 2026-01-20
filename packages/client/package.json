@@ -1,6 +1,6 @@
 {
   "name": "@speechos/client",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Vanilla JS client SDK for embedding SpeechOS into web applications",
   "type": "module",
   "main": "./dist/index.cjs",

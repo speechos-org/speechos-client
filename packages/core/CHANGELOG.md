@@ -1,5 +1,11 @@
 # @speechos/core
 
+## 0.2.2
+
+### Patch Changes
+
+- 3cf5ade: Initial beta release
+
 ## 0.2.0
 
 ### Minor Changes

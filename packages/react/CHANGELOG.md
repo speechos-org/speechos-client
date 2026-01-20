@@ -1,5 +1,15 @@
 # @speechos/react
 
+## 1.0.2
+
+### Patch Changes
+
+- 3cf5ade: Initial beta release
+- Updated dependencies [b9e25b9]
+- Updated dependencies [3cf5ade]
+  - @speechos/client@0.2.3
+  - @speechos/core@0.2.2
+
 ## 1.0.0
 
 ### Minor Changes
