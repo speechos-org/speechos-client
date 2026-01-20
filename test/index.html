@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeechOS Client SDK - Test Page</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 800px;
+      width: 100%;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 32px;
+      font-size: 16px;
+    }
+
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section h2 {
+      color: #444;
+      font-size: 20px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .info-card {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+
+    .info-card strong {
+      display: block;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .info-card code {
+      background: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #667eea;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    .test-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .form-example {
+      background: #f8f9fa;
+      padding: 24px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .console-output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .console-output:empty::before {
+      content: 'Console output will appear here...';
+      color: #666;
+      font-style: italic;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #333;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .log-time {
+      color: #858585;
+      margin-right: 8px;
+    }
+
+    .log-success {
+      color: #4ec9b0;
+    }
+
+    .log-error {
+      color: #f48771;
+    }
+
+    .log-info {
+      color: #9cdcfe;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 12px;
+    }
+
+    .status.loaded {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.initialized {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .environment-toggle {
+      display: flex;
+      gap: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #e0e0e0;
+      width: fit-content;
+    }
+
+    .env-btn {
+      background: #f8f9fa;
+      color: #666;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: none;
+      border-radius: 0;
+    }
+
+    .env-btn:hover {
+      background: #e9ecef;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .env-btn.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .env-btn.active:hover {
+      background: #5568d3;
+    }
+
+    .env-btn+.env-btn {
+      border-left: 1px solid #e0e0e0;
+    }
+
+    .version-info {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    }
+
+    .version-info.iife {
+      border-left: 3px solid #667eea;
+    }
+
+    .version-info.esm {
+      border-left: 3px solid #28a745;
+    }
+
+    .version-info.react {
+      border-left: 3px solid #61dafb;
+    }
+
+    #react-root {
+      margin-top: 16px;
+      padding: 16px;
+      background: #f0f8ff;
+      border-radius: 8px;
+      border: 2px dashed #61dafb;
+      display: none;
+    }
+
+    #react-root.active {
+      display: block;
+    }
+
+    .build-instructions {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .build-instructions h3 {
+      color: #856404;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .build-instructions p {
+      color: #856404;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .build-instructions code {
+      background: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    }
+
+    .instruction-box {
+      background: #e7f3ff;
+      border: 1px solid #2196f3;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .instruction-box strong {
+      color: #0d47a1;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .instruction-box p {
+      color: #1565c0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Voice Command Demo Lights */
+    .lights-demo {
+      background: #1a1a2e;
+      padding: 32px;
+      border-radius: 12px;
+      margin-top: 16px;
+    }
+
+    .lights-container {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .light-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .light {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .light.red {
+      background: #4a1515;
+    }
+
+    .light.green {
+      background: #154a1a;
+    }
+
+    .light.blue {
+      background: #15234a;
+    }
+
+    .light.yellow {
+      background: #4a4515;
+    }
+
+    .light.purple {
+      background: #2e154a;
+    }
+
+    .light.on.red {
+      background: #ef4444;
+      box-shadow: 0 0 30px #ef4444, 0 0 60px rgba(239, 68, 68, 0.5);
+    }
+
+    .light.on.green {
+      background: #22c55e;
+      box-shadow: 0 0 30px #22c55e, 0 0 60px rgba(34, 197, 94, 0.5);
+    }
+
+    .light.on.blue {
+      background: #3b82f6;
+      box-shadow: 0 0 30px #3b82f6, 0 0 60px rgba(59, 130, 246, 0.5);
+    }
+
+    .light.on.yellow {
+      background: #eab308;
+      box-shadow: 0 0 30px #eab308, 0 0 60px rgba(234, 179, 8, 0.5);
+    }
+
+    .light.on.purple {
+      background: #a855f7;
+      box-shadow: 0 0 30px #a855f7, 0 0 60px rgba(168, 85, 247, 0.5);
+    }
+
+    .light-label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .command-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .command-result {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .command-result-label {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .command-result-text {
+      color: #22c55e;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    .command-result-text.no-match {
+      color: #f59e0b;
+    }
+
+    .command-result-text.error {
+      color: #ef4444;
+    }
+
+    .available-commands {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+    }
+
+    .available-commands strong {
+      display: block;
+      margin-bottom: 8px;
+      color: white;
+    }
+
+    .available-commands ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .available-commands li {
+      margin-bottom: 4px;
+    }
+
+    .available-commands code {
+      background: rgba(102, 126, 234, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #a5b4fc;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="container">
+    <h1>
+      🎙️ SpeechOS Client SDK
+      <span class="status" id="sdk-status">Loading...</span>
+    </h1>
+    <p class="subtitle">Widget Demo & Test Page</p>
+
+    <div
+      style="margin-bottom: 24px; padding: 16px; background: linear-gradient(135deg, #61dafb 0%, #21a1f1 100%); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <span style="color: white; font-weight: 600; font-size: 14px;">⚛️ Testing React Hooks?</span>
+        <span style="color: rgba(255,255,255,0.9); font-size: 14px; margin-left: 8px;">Try the dedicated React hooks
+          test page with full TypeScript support.</span>
+      </div>
+      <a href="/react.html"
+        style="background: white; color: #21a1f1; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+        Open React Hooks Test →
+      </a>
+    </div>
+
+    <div class="build-instructions" id="build-warning" style="display: none;">
+      <h3>⚠️ SDK Not Built Yet</h3>
+      <p>
+        Please build the SDK first by running: <code>npm install && npm run build</code> from the
+        <code>speechos-client</code> directory.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>🔑 Setup</h2>
+      <div class="info-card">
+        <strong>Client API Key Required</strong>
+        <p style="margin-top: 8px; color: #666; font-size: 14px;">
+          Get your client API key from your team dashboard.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label>SDK Version</label>
+        <div class="environment-toggle">
+          <button type="button" id="ver-iife" class="env-btn active" onclick="setVersion('iife')">
+            📦 IIFE
+          </button>
+          <button type="button" id="ver-esm" class="env-btn" onclick="setVersion('esm')">
+            🔷 ESM
+          </button>
+          <button type="button" id="ver-react" class="env-btn" onclick="setVersion('react')">
+            ⚛️ React
+          </button>
+        </div>
+        <div id="version-info" class="version-info iife">
+          Loading @speechos/client via script tag (IIFE)
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="environment-select">Environment</label>
+        <div class="environment-toggle">
+          <button type="button" id="env-local" class="env-btn active" onclick="setEnvironment('local')">
+            🏠 Local
+          </button>
+          <button type="button" id="env-prod" class="env-btn" onclick="setEnvironment('prod')">
+            🚀 Production
+          </button>
+        </div>
+        <p style="margin-top: 4px; color: #666; font-size: 12px;">
+          Select which server to connect to.
+        </p>
+      </div>
+      <div class="form-group">
+        <label for="api-key-input">Client API Key</label>
+        <input type="text" id="api-key-input" placeholder="Paste your client API key here..."
+          style="font-family: 'Monaco', 'Menlo', 'Courier New', monospace; font-size: 13px;">
+      </div>
+      <div class="form-group">
+        <label for="user-id-input">User ID (optional)</label>
+        <input type="text" id="user-id-input" placeholder="e.g., user_123, john@example.com"
+          style="font-family: 'Monaco', 'Menlo', 'Courier New', monospace; font-size: 13px;">
+        <p style="margin-top: 4px; color: #666; font-size: 12px;">
+          Identifies the end user in session tracking. Can be set during init or later via
+          <code>SpeechOS.identify()</code>.
+        </p>
+      </div>
+      <div class="test-buttons">
+        <button onclick="initializeWidget()" style="background: #28a745;">Initialize SDK</button>
+        <button onclick="identifyUser()" style="background: #17a2b8;">Identify User</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Widget Controls</h2>
+      <div class="test-buttons">
+        <button onclick="destroyWidget()">Destroy Widget</button>
+        <button onclick="showWidget()">Show Widget</button>
+        <button onclick="hideWidget()">Hide Widget</button>
+        <button onclick="getState()">Get State</button>
+        <button onclick="clearConsole()">Clear Console</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>⚡ Voice Command Demo</h2>
+      <div class="instruction-box">
+        <strong>🎯 Test Voice Commands:</strong>
+        <p>
+          1. Initialize the SDK with your API key above<br>
+          2. Click "Start Command Mode" below<br>
+          3. Say a command like "turn on the red light" or "turn off blue"<br>
+          4. Watch the lights respond to your voice commands!
+        </p>
+      </div>
+
+      <div class="lights-demo">
+        <div class="lights-container">
+          <div class="light-wrapper">
+            <div class="light red" id="light-red"></div>
+            <span class="light-label">Red</span>
+          </div>
+          <div class="light-wrapper">
+            <div class="light green" id="light-green"></div>
+            <span class="light-label">Green</span>
+          </div>
+          <div class="light-wrapper">
+            <div class="light blue" id="light-blue"></div>
+            <span class="light-label">Blue</span>
+          </div>
+          <div class="light-wrapper">
+            <div class="light yellow" id="light-yellow"></div>
+            <span class="light-label">Yellow</span>
+          </div>
+          <div class="light-wrapper">
+            <div class="light purple" id="light-purple"></div>
+            <span class="light-label">Purple</span>
+          </div>
+        </div>
+
+        <div class="command-controls">
+          <button onclick="startCommandMode()" style="background: #f59e0b;">
+            ⚡ Start Command Mode
+          </button>
+          <button onclick="resetLights()" style="background: #6b7280;">
+            Reset Lights
+          </button>
+          <button onclick="toggleAllLights(true)" style="background: #10b981;">
+            All On
+          </button>
+          <button onclick="toggleAllLights(false)" style="background: #ef4444;">
+            All Off
+          </button>
+        </div>
+
+        <div class="command-result" id="command-result">
+          <span class="command-result-label">Last Command:</span>
+          <span class="command-result-text" id="command-result-text">None</span>
+        </div>
+
+        <div class="available-commands">
+          <strong>Available Commands:</strong>
+          <ul>
+            <li><code>turn_on</code> - "Turn on the [color] light"</li>
+            <li><code>turn_off</code> - "Turn off the [color] light"</li>
+            <li><code>toggle</code> - "Toggle [color]"</li>
+            <li><code>all_on</code> - "Turn on all lights"</li>
+            <li><code>all_off</code> - "Turn off all lights"</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Interactive Form Demo</h2>
+      <div class="instruction-box">
+        <strong>📝 How to Test:</strong>
+        <p>
+          1. Enter your Client API Key in the Setup section above<br>
+          2. Click "Initialize with API Key"<br>
+          3. Click on any form field below<br>
+          4. Watch the microphone button appear at the bottom of the page<br>
+          5. Click the microphone to see action bubbles (Dictate, Edit)<br>
+          6. Click "Dictate" to start recording (purple → spinner → red pulse)<br>
+          7. Click the red stop button to end recording (shows "Transcribing")
+        </p>
+      </div>
+
+      <div class="form-example">
+        <div class="form-group">
+          <label for="test-input-1">Text Input</label>
+          <input type="text" id="test-input-1" placeholder="Click here to activate the widget...">
+        </div>
+
+        <div class="form-group">
+          <label for="test-input-2">Email Input</label>
+          <input type="email" id="test-input-2" placeholder="your@email.com">
+        </div>
+
+        <div class="form-group">
+          <label for="test-textarea">Text Area</label>
+          <textarea id="test-textarea" placeholder="Click to focus and see the SpeechOS widget appear..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="test-search">Search Input</label>
+          <input type="search" id="test-search" placeholder="Search...">
+        </div>
+      </div>
+
+      <!-- React component mount point -->
+      <div id="react-root">
+        <p style="color: #61dafb; font-weight: 600; margin-bottom: 8px;">⚛️ React Integration</p>
+        <p style="color: #666; font-size: 14px; margin-bottom: 12px;">
+          Testing @speechos/react hooks and components. Focus the input below:
+        </p>
+        <div id="react-form-container"></div>
+      </div>
+
+    </div>
+
+    <div class="section">
+      <h2>Console Output</h2>
+      <div class="console-output" id="console-output"></div>
+    </div>
+  </div>
+
+  <script>
+    // Version and environment configuration
+    const ENVIRONMENTS = {
+      local: 'http://localhost:8000',
+      prod: 'https://app.speechos.ai'
+    };
+
+    const VERSION_INFO = {
+      iife: 'Loading @speechos/client via script tag (IIFE) — works anywhere',
+      esm: 'Loading @speechos/client via ES modules — <strong>requires Vite</strong>',
+      react: 'Loading @speechos/react with hooks — <strong>requires Vite</strong>'
+    };
+
+    // Check if running through Vite dev server (8443 for HTTPS, 8080 for HTTP)
+    const isViteServer = window.location.port === '8443' || window.location.port === '8080';
+
+    let currentEnvironment = localStorage.getItem('speechos-environment') || 'local';
+    let currentVersion = localStorage.getItem('speechos-sdk-version') || 'iife';
+
+    // Version switching (requires page reload)
+    function setVersion(version) {
+      if (version === currentVersion) return;
+
+      // Warn if trying to use ESM/React without Vite
+      if ((version === 'esm' || version === 'react') && !isViteServer) {
+        logToConsole('⚠️ ESM and React modes require running through Vite dev server', 'error');
+        logToConsole('Run: npm run test:dev', 'info');
+        return;
+      }
+
+      localStorage.setItem('speechos-sdk-version', version);
+      window.location.reload();
+    }
+
+    function initializeVersionUI() {
+      // Update button states
+      document.getElementById('ver-iife').classList.toggle('active', currentVersion === 'iife');
+      document.getElementById('ver-esm').classList.toggle('active', currentVersion === 'esm');
+      document.getElementById('ver-react').classList.toggle('active', currentVersion === 'react');
+
+      // Update info text
+      const infoEl = document.getElementById('version-info');
+      infoEl.innerHTML = VERSION_INFO[currentVersion];
+      infoEl.className = 'version-info ' + currentVersion;
+
+      // Show/hide React root
+      document.getElementById('react-root').classList.toggle('active', currentVersion === 'react');
+
+      // Disable ESM/React buttons if not on Vite
+      if (!isViteServer) {
+        document.getElementById('ver-esm').style.opacity = '0.5';
+        document.getElementById('ver-react').style.opacity = '0.5';
+      }
+    }
+
+    function setEnvironment(env) {
+      currentEnvironment = env;
+      localStorage.setItem('speechos-environment', env);
+
+      // Update button states
+      document.getElementById('env-local').classList.toggle('active', env === 'local');
+      document.getElementById('env-prod').classList.toggle('active', env === 'prod');
+
+      logToConsole(`✓ Environment set to: ${env === 'local' ? 'Local' : 'Production'}`, 'success');
+
+      // If widget is already initialized, destroy and prompt re-init
+      if (window.SpeechOS && window.SpeechOS.getState && window.SpeechOS.getState().initialized) {
+        logToConsole('Environment changed. Please re-initialize the SDK.', 'info');
+        destroyWidget();
+      }
+    }
+
+    function getHost() {
+      return ENVIRONMENTS[currentEnvironment];
+    }
+
+    function initializeEnvironmentUI() {
+      // Set the toggle to match saved environment
+      document.getElementById('env-local').classList.toggle('active', currentEnvironment === 'local');
+      document.getElementById('env-prod').classList.toggle('active', currentEnvironment === 'prod');
+    }
+
+    // Console logging utility
+    function logToConsole(message, type = 'info') {
+      const output = document.getElementById('console-output');
+      const time = new Date().toLocaleTimeString();
+      const logClass = type === 'success' ? 'log-success' : type === 'error' ? 'log-error' : 'log-info';
+
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="log-time">[${time}]</span><span class="${logClass}">${message}</span>`;
+
+      output.appendChild(entry);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearConsole() {
+      document.getElementById('console-output').innerHTML = '';
+      logToConsole('Console cleared', 'info');
+    }
+
+    function handleLoadError() {
+      const status = document.getElementById('sdk-status');
+      status.textContent = 'Build Required';
+      status.className = 'status error';
+
+      document.getElementById('build-warning').style.display = 'block';
+
+      logToConsole('Failed to load SDK - dist/index.iife.js not found', 'error');
+      logToConsole('Run: npm install && npm run build', 'info');
+    }
+
+    // Check if SDK loaded successfully
+    function initializeSDK() {
+      if (typeof window.SpeechOS !== 'undefined') {
+        const status = document.getElementById('sdk-status');
+        status.textContent = 'Loaded';
+        status.className = 'status loaded';
+
+        logToConsole('✓ SDK loaded successfully!', 'success');
+        logToConsole(`✓ Version: ${window.SpeechOS.VERSION || 'unknown'}`, 'success');
+        logToConsole(`✓ Mode: ${currentVersion.toUpperCase()}`, 'success');
+        logToConsole(`✓ Environment: ${currentEnvironment === 'local' ? 'Local' : 'Production'}`, 'success');
+
+        // Check for saved credentials and auto-init
+        const savedApiKey = localStorage.getItem('speechos-api-key');
+        const savedUserId = localStorage.getItem('speechos-user-id');
+
+        if (savedApiKey) {
+          logToConsole('✓ Found saved API key', 'success');
+        }
+        if (savedUserId) {
+          logToConsole('✓ Found saved User ID', 'success');
+        }
+
+        // Auto-initialize if API key is saved
+        if (savedApiKey) {
+          logToConsole('Auto-initializing with saved credentials...', 'info');
+          initializeWidget();
+        } else {
+          logToConsole('Enter your Client API Key above and click "Initialize SDK"', 'info');
+        }
+      } else {
+        handleLoadError();
+      }
+    }
+
+    // Widget control functions
+    async function initializeWidget() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      // Get API key from input field
+      const apiKeyInput = document.getElementById('api-key-input');
+      const apiKey = apiKeyInput.value.trim();
+
+      if (!apiKey) {
+        logToConsole('✗ Please enter your Client API Key', 'error');
+        apiKeyInput.focus();
+        return;
+      }
+
+      // Get User ID from input field (optional)
+      const userIdInput = document.getElementById('user-id-input');
+      const userId = userIdInput.value.trim();
+
+      try {
+        logToConsole('Initializing SpeechOS...', 'info');
+
+        // Save API key to localStorage for convenience
+        localStorage.setItem('speechos-api-key', apiKey);
+
+        // Save User ID to localStorage (even if empty, to clear previous value)
+        if (userId) {
+          localStorage.setItem('speechos-user-id', userId);
+          logToConsole(`User ID: ${userId}`, 'info');
+        } else {
+          localStorage.removeItem('speechos-user-id');
+        }
+
+        const host = getHost();
+        logToConsole(`Connecting to: ${currentEnvironment === 'local' ? 'Local' : 'Production'}`, 'info');
+
+        window.SpeechOS.init({
+          apiKey: apiKey,
+          userId: userId || undefined,
+          debug: true,
+          host: host,
+          // Enable command button by providing commands
+          commands: LIGHT_COMMANDS,
+        });
+
+        const status = document.getElementById('sdk-status');
+        status.textContent = 'Initialized';
+        status.className = 'status initialized';
+
+        logToConsole('✓ Widget initialized!', 'success');
+        logToConsole('Focus on any form field to see the widget', 'info');
+
+        // Subscribe to events
+        window.SpeechOS.events.on('widget:show', () => {
+          logToConsole('📍 Event: widget:show', 'info');
+        });
+
+        window.SpeechOS.events.on('widget:hide', () => {
+          logToConsole('📍 Event: widget:hide', 'info');
+        });
+
+        window.SpeechOS.events.on('form:focus', ({ element }) => {
+          logToConsole(`📍 Event: form:focus on ${element.tagName.toLowerCase()}`, 'info');
+        });
+
+        window.SpeechOS.events.on('action:select', ({ action }) => {
+          logToConsole(`📍 Event: action:select - "${action}"`, 'success');
+        });
+
+        window.SpeechOS.events.on('state:change', ({ state }) => {
+          if (state.recordingState !== 'idle') {
+            logToConsole(`🎙️ Recording state: ${state.recordingState}`, 'info');
+          }
+        });
+
+        window.SpeechOS.events.on('transcription:inserted', ({ text, element }) => {
+          logToConsole(`✍️ Transcription inserted: "${text}" into ${element.tagName.toLowerCase()}`, 'success');
+        });
+
+        // Edit events
+        window.SpeechOS.events.on('edit:applied', ({ originalContent, editedContent, element }) => {
+          logToConsole(`✏️ Edit applied: "${originalContent.substring(0, 30)}..." → "${editedContent}" in ${element.tagName.toLowerCase()}`, 'info');
+        });
+
+        window.SpeechOS.events.on('edit:kept', ({ content, element }) => {
+          logToConsole(`✅ Edit kept: "${content}" in ${element.tagName.toLowerCase()}`, 'success');
+        });
+
+        window.SpeechOS.events.on('edit:undone', ({ restoredContent, element }) => {
+          logToConsole(`↩️ Edit undone, restored: "${restoredContent.substring(0, 30)}..." in ${element.tagName.toLowerCase()}`, 'info');
+        });
+
+        window.SpeechOS.events.on('state:change', ({ state }) => {
+          if (state.editState === 'pending') {
+            logToConsole(`📝 Edit complete - choose: Keep, Undo, or Continue`, 'info');
+          }
+        });
+
+        // Command events
+        window.SpeechOS.events.on('command:complete', (payload) => {
+          console.log('[Lights] command:complete event received:', payload);
+          logToConsole(`⚡ Event: command:complete`, 'info');
+          handleCommandResult(payload.command);
+        });
+
+      } catch (error) {
+        logToConsole(`✗ Error initializing: ${error.message}`, 'error');
+      }
+    }
+
+    function destroyWidget() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      try {
+        window.SpeechOS.destroy();
+
+        const status = document.getElementById('sdk-status');
+        status.textContent = 'Loaded';
+        status.className = 'status loaded';
+
+        logToConsole('✓ Widget destroyed', 'success');
+      } catch (error) {
+        logToConsole(`✗ Error destroying: ${error.message}`, 'error');
+      }
+    }
+
+    function identifyUser() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      const userIdInput = document.getElementById('user-id-input');
+      const userId = userIdInput.value.trim();
+
+      if (!userId) {
+        logToConsole('✗ Please enter a User ID', 'error');
+        userIdInput.focus();
+        return;
+      }
+
+      try {
+        window.SpeechOS.identify(userId);
+
+        // Save to localStorage
+        localStorage.setItem('speechos-user-id', userId);
+
+        logToConsole(`✓ User identified: ${userId}`, 'success');
+        logToConsole('Next voice session will use this user ID', 'info');
+      } catch (error) {
+        logToConsole(`✗ Error identifying user: ${error.message}`, 'error');
+      }
+    }
+
+    function showWidget() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      try {
+        window.SpeechOS.show();
+        logToConsole('✓ Widget shown programmatically', 'success');
+      } catch (error) {
+        logToConsole(`✗ Error: ${error.message}`, 'error');
+      }
+    }
+
+    function hideWidget() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      try {
+        window.SpeechOS.hide();
+        logToConsole('✓ Widget hidden programmatically', 'success');
+      } catch (error) {
+        logToConsole(`✗ Error: ${error.message}`, 'error');
+      }
+    }
+
+    function getState() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      try {
+        const state = window.SpeechOS.getState();
+        logToConsole('Current State:', 'info');
+        logToConsole(JSON.stringify(state, null, 2), 'info');
+      } catch (error) {
+        logToConsole(`✗ Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Load saved form values from localStorage (before SDK loads)
+    function loadSavedFormValues() {
+      const savedApiKey = localStorage.getItem('speechos-api-key');
+      if (savedApiKey) {
+        document.getElementById('api-key-input').value = savedApiKey;
+      }
+
+      const savedUserId = localStorage.getItem('speechos-user-id');
+      if (savedUserId) {
+        document.getElementById('user-id-input').value = savedUserId;
+      }
+    }
+
+    // Dynamic SDK loading based on version
+    function loadSDK() {
+      initializeVersionUI();
+      initializeEnvironmentUI();
+      loadSavedFormValues();
+
+      if (currentVersion === 'iife') {
+        loadIIFE();
+      } else if (currentVersion === 'esm') {
+        loadESM();
+      } else if (currentVersion === 'react') {
+        loadReact();
+      }
+    }
+
+    function loadIIFE() {
+      const script = document.createElement('script');
+      script.src = '/packages/client/dist/index.iife.js';
+      script.onload = () => {
+        logToConsole('✓ IIFE bundle loaded', 'success');
+        initializeSDK();
+      };
+      script.onerror = handleLoadError;
+      document.head.appendChild(script);
+    }
+
+    function loadESM() {
+      // Load via module file that Vite processes (resolves bare imports)
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = './loaders/esm.ts';
+      script.onerror = () => {
+        logToConsole('✗ Failed to load ESM loader', 'error');
+        handleLoadError();
+      };
+      document.head.appendChild(script);
+
+      window.addEventListener('speechos-esm-loaded', () => {
+        logToConsole('✓ ESM module loaded', 'success');
+        initializeSDK();
+      }, { once: true });
+    }
+
+    function loadReact() {
+      // Load via module file that Vite processes (resolves bare imports)
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = './loaders/react.ts';
+      script.onerror = () => {
+        logToConsole('✗ Failed to load React loader', 'error');
+        handleLoadError();
+      };
+      document.head.appendChild(script);
+
+      window.addEventListener('speechos-react-loaded', () => {
+        logToConsole('✓ React packages loaded', 'success');
+        initializeReactDemo();
+        initializeSDK();
+      }, { once: true });
+    }
+
+    function initializeReactDemo() {
+      const { useSpeechOS, useDictation } = window.SpeechOSReact;
+      const { createElement: h, useState } = window.React;
+      const { createRoot } = window.ReactDOM;
+
+      // Simple React form component
+      function ReactFormDemo() {
+        const [text, setText] = useState('');
+
+        return h('div', null,
+          h('input', {
+            type: 'text',
+            value: text,
+            onChange: (e) => setText(e.target.value),
+            placeholder: 'React-controlled input - focus to see widget...',
+            style: {
+              width: '100%',
+              padding: '12px',
+              border: '2px solid #61dafb',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontFamily: 'inherit'
+            }
+          }),
+          h('p', { style: { marginTop: '8px', fontSize: '12px', color: '#666' } },
+            'Value: ', text || '(empty)'
+          )
+        );
+      }
+
+      // Render the React demo
+      const container = document.getElementById('react-form-container');
+      const root = createRoot(container);
+      root.render(h(ReactFormDemo));
+
+      logToConsole('✓ React demo component mounted', 'success');
+    }
+
+    // ============================================
+    // Voice Command Demo - Light Control
+    // ============================================
+
+    // Define available commands for the light demo
+    const LIGHT_COMMANDS = [
+      {
+        name: 'turn_on',
+        description: 'Turn on a specific light by color',
+        arguments: [
+          {
+            name: 'color',
+            description: 'The color of the light to turn on (red, green, blue, yellow, purple)',
+            type: 'string',
+            required: true
+          }
+        ]
+      },
+      {
+        name: 'turn_off',
+        description: 'Turn off a specific light by color',
+        arguments: [
+          {
+            name: 'color',
+            description: 'The color of the light to turn off (red, green, blue, yellow, purple)',
+            type: 'string',
+            required: true
+          }
+        ]
+      },
+      {
+        name: 'toggle',
+        description: 'Toggle a specific light on or off',
+        arguments: [
+          {
+            name: 'color',
+            description: 'The color of the light to toggle (red, green, blue, yellow, purple)',
+            type: 'string',
+            required: true
+          }
+        ]
+      },
+      {
+        name: 'all_on',
+        description: 'Turn on all lights at once'
+      },
+      {
+        name: 'all_off',
+        description: 'Turn off all lights at once'
+      }
+    ];
+
+    const VALID_COLORS = ['red', 'green', 'blue', 'yellow', 'purple'];
+
+    function normalizeColor(color) {
+      if (!color) return null;
+      const normalized = color.toLowerCase().trim();
+      // Handle common variations
+      if (normalized.includes('red')) return 'red';
+      if (normalized.includes('green')) return 'green';
+      if (normalized.includes('blue')) return 'blue';
+      if (normalized.includes('yellow')) return 'yellow';
+      if (normalized.includes('purple') || normalized.includes('violet')) return 'purple';
+      return VALID_COLORS.includes(normalized) ? normalized : null;
+    }
+
+    function setLightState(color, on) {
+      const light = document.getElementById(`light-${color}`);
+      if (light) {
+        if (on) {
+          light.classList.add('on');
+        } else {
+          light.classList.remove('on');
+        }
+      }
+    }
+
+    function toggleLight(color) {
+      const lightId = `light-${color}`;
+      const light = document.getElementById(lightId);
+      console.log('[Lights] toggleLight called:', { color, lightId, light, hasOnClass: light?.classList.contains('on') });
+      if (light) {
+        light.classList.toggle('on');
+        console.log('[Lights] After toggle:', { hasOnClass: light.classList.contains('on') });
+      } else {
+        console.error('[Lights] Element not found:', lightId);
+      }
+    }
+
+    function toggleAllLights(on) {
+      VALID_COLORS.forEach(color => setLightState(color, on));
+    }
+
+    function resetLights() {
+      toggleAllLights(false);
+      updateCommandResult('None', '');
+    }
+
+    function updateCommandResult(text, className = '') {
+      const resultText = document.getElementById('command-result-text');
+      resultText.textContent = text;
+      resultText.className = 'command-result-text ' + className;
+    }
+
+    function handleCommandResult(command) {
+      console.log('[Lights] handleCommandResult called with:', command);
+
+      if (!command) {
+        updateCommandResult('No command matched', 'no-match');
+        logToConsole('⚡ Command: No match found', 'info');
+        return;
+      }
+
+      const { name, arguments: args } = command;
+      console.log('[Lights] Parsed command:', { name, args });
+      logToConsole(`⚡ Command matched: ${name}`, 'success');
+      logToConsole(`   Arguments: ${JSON.stringify(args)}`, 'info');
+
+      let resultText = '';
+
+      switch (name) {
+        case 'turn_on': {
+          const color = normalizeColor(args?.color);
+          if (color) {
+            setLightState(color, true);
+            resultText = `turn_on(${color}) ✓`;
+          } else {
+            resultText = `turn_on - invalid color: ${args?.color}`;
+            updateCommandResult(resultText, 'error');
+            return;
+          }
+          break;
+        }
+        case 'turn_off': {
+          const color = normalizeColor(args?.color);
+          if (color) {
+            setLightState(color, false);
+            resultText = `turn_off(${color}) ✓`;
+          } else {
+            resultText = `turn_off - invalid color: ${args?.color}`;
+            updateCommandResult(resultText, 'error');
+            return;
+          }
+          break;
+        }
+        case 'toggle': {
+          console.log('[Lights] toggle case - args?.color:', args?.color);
+          const color = normalizeColor(args?.color);
+          console.log('[Lights] normalizeColor result:', color);
+          if (color) {
+            console.log('[Lights] Calling toggleLight with:', color);
+            toggleLight(color);
+            resultText = `toggle(${color}) ✓`;
+          } else {
+            resultText = `toggle - invalid color: ${args?.color}`;
+            updateCommandResult(resultText, 'error');
+            return;
+          }
+          break;
+        }
+        case 'all_on':
+          toggleAllLights(true);
+          resultText = 'all_on() ✓';
+          break;
+        case 'all_off':
+          toggleAllLights(false);
+          resultText = 'all_off() ✓';
+          break;
+        default:
+          resultText = `Unknown command: ${name}`;
+          updateCommandResult(resultText, 'error');
+          return;
+      }
+
+      updateCommandResult(resultText);
+    }
+
+    async function startCommandMode() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      // Check if initialized by trying to get state
+      try {
+        const currentState = window.SpeechOS.getState();
+        if (!currentState) {
+          logToConsole('✗ SDK not initialized. Please click "Initialize SDK" first.', 'error');
+          return;
+        }
+      } catch (e) {
+        logToConsole('✗ SDK not initialized. Please click "Initialize SDK" first.', 'error');
+        return;
+      }
+
+      try {
+        logToConsole('⚡ Starting command mode...', 'info');
+        updateCommandResult('Listening...', '');
+
+        // Show the widget and let user click the Command button
+        window.SpeechOS.show();
+
+        logToConsole('Widget shown. Click the ⚡ Command button to start voice input.', 'info');
+
+      } catch (error) {
+        logToConsole(`✗ Error starting command: ${error.message}`, 'error');
+        updateCommandResult(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    // Click handlers for lights (manual toggle)
+    document.addEventListener('DOMContentLoaded', () => {
+      VALID_COLORS.forEach(color => {
+        const light = document.getElementById(`light-${color}`);
+        if (light) {
+          light.addEventListener('click', () => toggleLight(color));
+        }
+      });
+    });
+
+    // Initialize when page loads
+    window.addEventListener('load', loadSDK);
+  </script>
+</body>
+
+</html>

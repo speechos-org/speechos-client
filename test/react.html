@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeechOS React Hooks - Test Page</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #61dafb 0%, #21a1f1 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    /* Header styles */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .header h1 {
+      color: #333;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #61dafb;
+      color: #1a1a2e;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .back-link {
+      color: #61dafb;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Setup section */
+    .setup-section {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .setup-section h2 {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .setup-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .setup-field input,
+    .setup-field select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .setup-field input:focus,
+    .setup-field select:focus {
+      outline: none;
+      border-color: #61dafb;
+    }
+
+    .setup-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    /* Tab navigation */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #f0f0f0;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+
+    .tab-button {
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: #666;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .tab-button:hover {
+      background: rgba(255, 255, 255, 0.5);
+      color: #333;
+    }
+
+    .tab-button.active {
+      background: white;
+      color: #21a1f1;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Tab content panels */
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* Test panel styles */
+    .test-panel {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .test-panel h3 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .test-panel .description {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #21a1f1;
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #1a8ad4;
+    }
+
+    .btn-success {
+      background: #22c55e;
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #16a34a;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #dc2626;
+    }
+
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #4b5563;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .btn-warning:hover:not(:disabled) {
+      background: #d97706;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Status badges */
+    .status-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e5e7eb;
+      color: #6b7280;
+    }
+
+    .status-badge.active {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    .status-badge.recording {
+      background: #fef2f2;
+      color: #dc2626;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .status-badge.processing {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .status-badge.error {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    .status-badge.connected {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    /* Result display */
+    .result-box {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .result-box.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+
+    .result-box.success {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+    }
+
+    .result-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .result-content {
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 14px;
+      color: #333;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .result-content.empty {
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    /* JSON display */
+    .json-display {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    /* State cards */
+    .state-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .state-card {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .state-card .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .state-card .value {
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .state-card .value.true {
+      color: #16a34a;
+    }
+
+    .state-card .value.false {
+      color: #dc2626;
+    }
+
+    .state-card .value.null {
+      color: #9ca3af;
+    }
+
+    /* Textarea */
+    .text-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 100px;
+      margin-bottom: 16px;
+      transition: border-color 0.2s;
+    }
+
+    .text-input:focus {
+      outline: none;
+      border-color: #61dafb;
+    }
+
+    /* Event log */
+    .event-log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .event-log:empty::before {
+      content: 'Events will appear here...';
+      color: #666;
+      font-style: italic;
+    }
+
+    .event-entry {
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #333;
+    }
+
+    .event-entry:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .event-time {
+      color: #858585;
+      margin-right: 8px;
+    }
+
+    .event-name {
+      color: #61dafb;
+      font-weight: 600;
+    }
+
+    .event-payload {
+      color: #9cdcfe;
+      margin-left: 16px;
+      display: block;
+      margin-top: 4px;
+    }
+
+    /* Lifecycle steps */
+    .lifecycle-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .lifecycle-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 2px solid #e5e7eb;
+    }
+
+    .lifecycle-step.completed {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+    }
+
+    .lifecycle-step.current {
+      border-color: #61dafb;
+      background: #f0f9ff;
+    }
+
+    .step-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      color: #6b7280;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .lifecycle-step.completed .step-number {
+      background: #22c55e;
+      color: white;
+    }
+
+    .lifecycle-step.current .step-number {
+      background: #61dafb;
+      color: white;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-title {
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .step-desc {
+      font-size: 12px;
+      color: #666;
+    }
+
+    /* Command list */
+    .command-list {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .command-list h4 {
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    .command-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .command-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .command-name {
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      background: #e5e7eb;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #21a1f1;
+      font-weight: 600;
+    }
+
+    .command-desc {
+      color: #666;
+    }
+
+    /* Comparison display */
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .comparison-box {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .comparison-box h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .comparison-box p {
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+      white-space: pre-wrap;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e5e7eb;
+      border-top-color: #21a1f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Not initialized warning */
+    .not-initialized {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .not-initialized h4 {
+      color: #92400e;
+      margin-bottom: 8px;
+    }
+
+    .not-initialized p {
+      color: #a16207;
+      font-size: 14px;
+    }
+
+    /* Info box */
+    .info-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .info-box p {
+      color: #1e40af;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .info-box code {
+      background: #dbeafe;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 13px;
+    }
+
+    /* API methods grid */
+    .api-methods {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .tabs {
+        flex-wrap: nowrap;
+      }
+
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+
+      .setup-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div id="root">
+      <div style="text-align: center; padding: 40px;">
+        <div class="spinner" style="width: 32px; height: 32px; margin: 0 auto 16px;"></div>
+        <p style="color: #666;">Loading React Hooks Test Page...</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./react.tsx"></script>
+</body>
+
+</html>

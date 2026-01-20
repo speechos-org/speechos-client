@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeechOS Client SDK - ESM Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 800px;
+      width: 100%;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 32px;
+      font-size: 16px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #11998e;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 12px;
+    }
+
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section h2 {
+      color: #444;
+      font-size: 20px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .console-output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .log-line {
+      margin-bottom: 4px;
+    }
+
+    .log-success {
+      color: #4ec9b0;
+    }
+
+    .log-error {
+      color: #f48771;
+    }
+
+    .log-info {
+      color: #9cdcfe;
+    }
+
+    .log-code {
+      color: #ce9178;
+    }
+
+    .code-block {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+
+    .code-block code {
+      color: #333;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .info {
+      background: #e7f3ff;
+      border-left: 4px solid #2196f3;
+      padding: 16px;
+      border-radius: 4px;
+      margin: 16px 0;
+    }
+
+    .info p {
+      color: #1565c0;
+      font-size: 14px;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      🎙️ SpeechOS Client SDK
+      <span class="badge">ESM Test</span>
+    </h1>
+    <p class="subtitle">Testing ES Module Import - v0.1.0</p>
+
+    <div class="section">
+      <h2>About This Test</h2>
+      <div class="info">
+        <p>
+          This page tests the ESM (ES Module) build of the SDK using native JavaScript module imports.
+          Check the console output below for test results.
+        </p>
+      </div>
+
+      <div class="code-block">
+        <code>&lt;script type="module"&gt;<br>
+  import { VERSION } from '/packages/client/dist/index.js';<br>
+  console.log('Version:', VERSION);<br>
+&lt;/script&gt;</code>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Test Results</h2>
+      <div class="console-output" id="output"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    const output = document.getElementById('output');
+
+    function log(message, type = 'info') {
+      const line = document.createElement('div');
+      line.className = `log-line log-${type}`;
+      line.textContent = message;
+      output.appendChild(line);
+    }
+
+    try {
+      log('Starting ESM import test...', 'info');
+      log('', 'info');
+
+      // Import the SDK from the client package
+      const SDK = await import('/packages/client/dist/index.js');
+
+      log('✓ Successfully imported SDK module', 'success');
+      log('', 'info');
+
+      // Check what was exported
+      log('Checking exports:', 'info');
+      const exports = Object.keys(SDK);
+      log(`  Found ${exports.length} export(s)`, 'info');
+
+      exports.forEach(key => {
+        const value = SDK[key];
+        const valueStr = typeof value === 'string' ? `"${value}"` : JSON.stringify(value);
+        log(`  - ${key}: ${typeof value} = ${valueStr}`, 'code');
+      });
+
+      log('', 'info');
+
+      // Test VERSION specifically
+      if ('VERSION' in SDK) {
+        log(`✓ VERSION export found: ${SDK.VERSION}`, 'success');
+      } else {
+        log('✗ VERSION export not found', 'error');
+      }
+
+      log('', 'info');
+
+      // Check global scope
+      log('Checking global scope:', 'info');
+      if (typeof window.SpeechOS === 'undefined') {
+        log('✓ No global pollution (window.SpeechOS is undefined)', 'success');
+        log('  ESM imports should not pollute global scope', 'info');
+      } else {
+        log('⚠ window.SpeechOS exists (unexpected for ESM)', 'error');
+      }
+
+      log('', 'info');
+      log('✓ ESM test completed successfully!', 'success');
+
+    } catch (error) {
+      log('✗ Error during import:', 'error');
+      log(`  ${error.message}`, 'error');
+      log('', 'info');
+      log('Make sure you have built the SDK first:', 'info');
+      log('  npm run build', 'code');
+    }
+  </script>
+</body>
+</html>

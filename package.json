@@ -1,0 +1,52 @@
+{
+  "name": "speechos-client-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SpeechOS client SDK monorepo",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build:core && npm run build:client && npm run build:react",
+    "build:core": "npm run build -w @speechos/core",
+    "build:client": "npm run build -w @speechos/client",
+    "build:react": "npm run build -w @speechos/react",
+    "dev": "npm run build:core && npm run dev:client",
+    "dev:client": "npm run dev -w @speechos/client",
+    "dev:react": "npm run build:core && npm run dev -w @speechos/react",
+    "dev:iife": "npm run build:core && npm run dev:iife -w @speechos/client",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:watch": "npm run test:watch --workspaces --if-present",
+    "test:ui": "vitest --ui",
+    "test:dev": "npm run build && concurrently \"npm run dev -w @speechos/core\" \"npm run dev:iife -w @speechos/client\" \"vite --config test/vite.config.ts\"",
+    "test:dev:http": "npm run build && concurrently \"npm run dev -w @speechos/core\" \"npm run dev:iife -w @speechos/client\" \"VITE_HTTP=true vite --config test/vite.config.ts\"",
+    "generate-certs": "node scripts/generate-certs.js",
+    "clean": "rm -rf packages/*/dist",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "npm run build && changeset publish"
+  },
+  "keywords": [
+    "speechos",
+    "sdk",
+    "client",
+    "embed",
+    "voice",
+    "ai"
+  ],
+  "author": "SpeechOS",
+  "license": "MIT",
+  "devDependencies": {
+    "@changesets/cli": "^2.29.8",
+    "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/ui": "^4.0.16",
+    "concurrently": "^9.2.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.3.5",
+    "vitest": "^4.0.16"
+  }
+}
