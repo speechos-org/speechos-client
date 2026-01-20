@@ -2,7 +2,7 @@
 
 Add voice input to any web application in minutes. SpeechOS lets users speak instead of type, saving time on text entry and editing tasks.
 
-**Powered by [SpeechOS](https://www.speechos.ai/)** — Production-ready speech recognition APIs that actually work. No training required, no model management, no infrastructure headaches. Just accurate, fast transcription with built-in punctuation, capitalization, and AI-powered text editing. Start free, scale to millions of users.
+**Powered by [SpeechOS](https://www.speechos.ai/)** — Ship voice input in 2 lines of code. Your users speak 4x faster than they type, with zero typos and zero filler words. See 3x longer responses, 2.4x more completed fields, and 41% less form abandonment. Supports 33+ languages out of the box. No setup, no servers, no complexity—[sign up for a free API key](https://www.speechos.ai/) and start building.
 
 **Features:**
 
