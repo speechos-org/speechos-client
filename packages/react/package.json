@@ -1,6 +1,6 @@
 {
   "name": "@speechos/react",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "React hooks and components for SpeechOS voice integration",
   "type": "module",
   "main": "./dist/index.cjs",
