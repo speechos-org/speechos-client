@@ -2,14 +2,14 @@
 
 Add voice input to any web application in minutes. SpeechOS lets users speak instead of type, saving time on text entry and editing tasks.
 
-**Powered by [SpeechOS](https://www.speechos.ai/)** — Ship voice input in 2 lines of code. Your users speak 4x faster than they type, with zero typos and zero filler words. See 3x longer responses, 2.4x more completed fields, and 41% less form abandonment. Supports 33+ languages out of the box. No setup, no servers, no complexity—[sign up for a free API key](https://www.speechos.ai/) and start building.
+**Powered by [SpeechOS](https://www.speechos.ai/)** — Ship voice input in 2 lines of code. Your users speak 4x faster than they type, with zero typos and zero filler words. No setup, no servers, no complexity—[sign up for a free API key](https://www.speechos.ai/) and start building.
 
 **Features:**
 
 - **Dictation** — Speak to produce formatted text with punctuation and capitalization
 - **Edit** — Give voice instructions to modify existing text (e.g., "make it more formal")
 - **Commands** — Match voice input to custom commands with argument extraction
-- **Works Everywhere** — Browser, React, Vue, vanilla JS, and more
+- **Works Everywhere** — Browser, React, vanilla JS, and more
 
 ## Quick Start (Browser)
 
