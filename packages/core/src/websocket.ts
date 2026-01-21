@@ -15,7 +15,7 @@ import type {
   VoiceSessionOptions,
   SessionSettings,
 } from './types.js';
-import { getConfig } from './config.js';
+import { getConfig, getAnonymousId } from './config.js';
 import { events } from './events.js';
 import { state } from './state.js';
 import { AudioCapture, createAudioCapture, getSupportedAudioFormat } from './audio-capture.js';
@@ -264,11 +264,13 @@ class WebSocketManager {
     const config = getConfig();
     const audioFormat = getSupportedAudioFormat();
     const settings = this.sessionSettings;
+    const anonymousId = getAnonymousId();
 
     const authMessage = {
       type: MESSAGE_TYPE_AUTH,
       api_key: config.apiKey,
       user_id: config.userId || null,
+      anonymous_id: anonymousId,
       input_language: settings.inputLanguageCode ?? 'en-US',
       output_language: settings.outputLanguageCode ?? 'en-US',
       smart_format: settings.smartFormat ?? true,

@@ -86,3 +86,31 @@ export function resetConfig(): void {
 export function updateUserId(userId: string): void {
   currentConfig = { ...currentConfig, userId };
 }
+
+/**
+ * LocalStorage key for anonymous ID persistence
+ */
+const ANONYMOUS_ID_KEY = 'speechos_anonymous_id';
+
+/**
+ * Get or generate a persistent anonymous ID for Mixpanel tracking.
+ *
+ * This ID is stored in localStorage to persist across sessions,
+ * allowing consistent anonymous user tracking without identifying
+ * the account owner's customers.
+ *
+ * @returns A UUID string for anonymous identification
+ */
+export function getAnonymousId(): string {
+  // Only available in browser environments with localStorage
+  if (typeof localStorage === 'undefined') {
+    return crypto.randomUUID();
+  }
+
+  let anonymousId = localStorage.getItem(ANONYMOUS_ID_KEY);
+  if (!anonymousId) {
+    anonymousId = crypto.randomUUID();
+    localStorage.setItem(ANONYMOUS_ID_KEY, anonymousId);
+  }
+  return anonymousId;
+}
