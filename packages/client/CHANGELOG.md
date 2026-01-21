@@ -1,5 +1,18 @@
 # @speechos/client
 
+## 0.2.4
+
+### Patch Changes
+
+- # Features
+
+  - Always visible state: Add support for persistent UI visibility with new modal components for dictation output and editing help, enhanced mic button functionality, and configurable
+    form detection behavior
+  - Anonymous user tracking: Implement anonymous ID generation and transmission to backend for analytics
+
+- Updated dependencies
+  - @speechos/core@0.2.3
+
 ## 0.2.3
 
 ### Patch Changes
