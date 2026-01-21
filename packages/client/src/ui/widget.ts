@@ -788,7 +788,10 @@ export class SpeechOSWidget extends LitElement {
       const errorMessage =
         error instanceof Error ? error.message : "Connection failed";
       if (errorMessage !== "Disconnected") {
-        state.setError(`Failed to connect: ${errorMessage}`);
+        // Only set error if not already in error state (error event may have already set it)
+        if (this.widgetState.recordingState !== "error") {
+          state.setError(`Failed to connect: ${errorMessage}`);
+        }
         await backend.disconnect();
       }
     }
@@ -857,7 +860,10 @@ export class SpeechOSWidget extends LitElement {
       const errorMessage =
         error instanceof Error ? error.message : "Connection failed";
       if (errorMessage !== "Disconnected") {
-        state.setError(`Failed to connect: ${errorMessage}`);
+        // Only set error if not already in error state (error event may have already set it)
+        if (this.widgetState.recordingState !== "error") {
+          state.setError(`Failed to connect: ${errorMessage}`);
+        }
         await backend.disconnect();
       }
     }
@@ -916,7 +922,10 @@ export class SpeechOSWidget extends LitElement {
       const errorMessage =
         error instanceof Error ? error.message : "Connection failed";
       if (errorMessage !== "Disconnected") {
-        state.setError(`Failed to connect: ${errorMessage}`);
+        // Only set error if not already in error state (error event may have already set it)
+        if (this.widgetState.recordingState !== "error") {
+          state.setError(`Failed to connect: ${errorMessage}`);
+        }
         await backend.disconnect();
       }
     }
