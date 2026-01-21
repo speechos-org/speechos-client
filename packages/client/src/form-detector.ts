@@ -4,6 +4,7 @@
  */
 
 import { events, state } from "@speechos/core";
+import { isAlwaysVisible } from "./config.js";
 
 /**
  * Check if an element is a form field that we should track
@@ -148,13 +149,17 @@ export class FormDetector implements FormDetectorInterface {
           );
 
           // Only hide if no form field is focused AND widget isn't focused AND not a no-close element
+          // AND alwaysVisible is not enabled
           if (
             !isFormField(activeElement) &&
             !isWidgetFocused &&
             !isNoCloseElementFocused
           ) {
             state.setFocusedElement(null);
-            state.hide();
+            // Don't hide if alwaysVisible is enabled
+            if (!isAlwaysVisible()) {
+              state.hide();
+            }
             events.emit("form:blur", { element: null });
           }
         }, 150);
@@ -246,7 +251,10 @@ export class FormDetector implements FormDetectorInterface {
     // Reset state
     this.isWidgetBeingInteracted = false;
     state.setFocusedElement(null);
-    state.hide();
+    // Don't hide if alwaysVisible is enabled
+    if (!isAlwaysVisible()) {
+      state.hide();
+    }
 
     this.isActive = false;
   }

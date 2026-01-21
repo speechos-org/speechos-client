@@ -585,6 +585,15 @@
           <code>SpeechOS.identify()</code>.
         </p>
       </div>
+      <div class="form-group">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" id="always-visible-input" style="width: 18px; height: 18px; cursor: pointer;">
+          <span>Always Visible</span>
+        </label>
+        <p style="margin-top: 4px; color: #666; font-size: 12px;">
+          Keep the widget visible even when no form field is focused. Useful for always-on voice input.
+        </p>
+      </div>
       <div class="test-buttons">
         <button onclick="initializeWidget()" style="background: #28a745;">Initialize SDK</button>
         <button onclick="identifyUser()" style="background: #17a2b8;">Identify User</button>
@@ -910,11 +919,20 @@
         const host = getHost();
         logToConsole(`Connecting to: ${currentEnvironment === 'local' ? 'Local' : 'Production'}`, 'info');
 
+        // Get alwaysVisible checkbox state
+        const alwaysVisibleInput = document.getElementById('always-visible-input');
+        const alwaysVisible = alwaysVisibleInput.checked;
+        localStorage.setItem('speechos-always-visible', alwaysVisible ? 'true' : 'false');
+        if (alwaysVisible) {
+          logToConsole('Always Visible mode enabled', 'info');
+        }
+
         window.SpeechOS.init({
           apiKey: apiKey,
           userId: userId || undefined,
           debug: true,
           host: host,
+          alwaysVisible: alwaysVisible,
           // Enable command button by providing commands
           commands: LIGHT_COMMANDS,
         });
@@ -1084,6 +1102,11 @@
       const savedUserId = localStorage.getItem('speechos-user-id');
       if (savedUserId) {
         document.getElementById('user-id-input').value = savedUserId;
+      }
+
+      const savedAlwaysVisible = localStorage.getItem('speechos-always-visible');
+      if (savedAlwaysVisible === 'true') {
+        document.getElementById('always-visible-input').checked = true;
       }
     }
 

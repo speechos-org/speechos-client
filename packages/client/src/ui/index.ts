@@ -11,6 +11,8 @@ import "./settings-button.js";
 import "./settings-modal.js";
 import "./audio-level-meter.js";
 import "./audio-visualizer.js";
+import "./dictation-output-modal.js";
+import "./edit-help-modal.js";
 
 // Re-export component classes for programmatic use
 export { SpeechOSWidget } from "./widget.js";
@@ -20,6 +22,8 @@ export { SpeechOSSettingsButton } from "./settings-button.js";
 export { SpeechOSSettingsModal } from "./settings-modal.js";
 export { SpeechOSAudioLevelMeter } from "./audio-level-meter.js";
 export { SpeechOSAudioVisualizer } from "./audio-visualizer.js";
+export { SpeechOSDictationOutputModal } from "./dictation-output-modal.js";
+export { SpeechOSEditHelpModal } from "./edit-help-modal.js";
 
 /**
  * Register all custom elements

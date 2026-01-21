@@ -30,6 +30,7 @@ import {
   SpeechOSTest,
   WidgetTest,
   WidgetHookTest,
+  VisibilityTest,
 } from './react-components.js';
 
 // Tab definitions
@@ -42,6 +43,7 @@ const TABS = [
   { id: 'speechos', label: 'useSpeechOS', description: 'Full context API' },
   { id: 'widget-hook', label: 'useSpeechOSWidget', description: 'Programmatic widget control hook' },
   { id: 'widget', label: 'Widget (Client)', description: 'Client SDK widget control' },
+  { id: 'visibility', label: 'Visibility & Modals', description: 'Test alwaysVisible and modal features' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -226,6 +228,9 @@ function TabContent({ activeTab, isInitialized }: TabContentProps) {
       </div>
       <div className={`tab-panel ${activeTab === 'widget' ? 'active' : ''}`}>
         <WidgetTest />
+      </div>
+      <div className={`tab-panel ${activeTab === 'visibility' ? 'active' : ''}`}>
+        <VisibilityTest />
       </div>
     </>
   );

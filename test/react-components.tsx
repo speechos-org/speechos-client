@@ -1270,3 +1270,215 @@ export function WidgetHookTest() {
     </div>
   );
 }
+
+// ============================================
+// Visibility & Modals Test Component
+// ============================================
+
+export function VisibilityTest() {
+  const state = useSpeechOSState();
+  const [logs, setLogs] = useState<Array<{ time: string; message: string; type: 'info' | 'success' | 'error' }>>([]);
+  const [alwaysVisible, setAlwaysVisible] = useState(false);
+  const [isReinitialized, setIsReinitialized] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
+
+  const addLog = useCallback((message: string, type: 'info' | 'success' | 'error' = 'info') => {
+    setLogs((prev) => [
+      { time: formatTime(), message, type },
+      ...prev.slice(0, 49),
+    ]);
+  }, []);
+
+  // Subscribe to widget events
+  useSpeechOSEvents('widget:show', useCallback(() => {
+    addLog('widget:show event fired', 'success');
+  }, [addLog]));
+
+  useSpeechOSEvents('widget:hide', useCallback(() => {
+    addLog('widget:hide event fired', 'info');
+  }, [addLog]));
+
+  useSpeechOSEvents('transcription:complete', useCallback(({ text }) => {
+    addLog(`Transcription complete: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`, 'success');
+  }, [addLog]));
+
+  const handleReinitWithAlwaysVisible = async () => {
+    try {
+      // First destroy the existing instance
+      if (SpeechOS.initialized) {
+        await SpeechOS.destroy();
+        addLog('Destroyed existing SpeechOS instance', 'info');
+      }
+
+      // Get config from localStorage
+      const apiKey = localStorage.getItem('speechos-api-key') || '';
+      const userId = localStorage.getItem('speechos-user-id') || undefined;
+      const env = localStorage.getItem('speechos-environment') || 'local';
+      const host = env === 'prod' ? 'https://app.speechos.ai' : 'http://localhost:8000';
+
+      if (!apiKey) {
+        addLog('No API key found. Please set up in the Setup section.', 'error');
+        return;
+      }
+
+      // Re-initialize with alwaysVisible
+      SpeechOS.init({
+        apiKey,
+        userId,
+        host,
+        debug: true,
+        alwaysVisible: true,
+      });
+      setAlwaysVisible(true);
+      setIsReinitialized(true);
+      addLog('Re-initialized with alwaysVisible: true', 'success');
+    } catch (err) {
+      addLog(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  const handleReinitNormal = async () => {
+    try {
+      if (SpeechOS.initialized) {
+        await SpeechOS.destroy();
+        addLog('Destroyed existing SpeechOS instance', 'info');
+      }
+
+      const apiKey = localStorage.getItem('speechos-api-key') || '';
+      const userId = localStorage.getItem('speechos-user-id') || undefined;
+      const env = localStorage.getItem('speechos-environment') || 'local';
+      const host = env === 'prod' ? 'https://app.speechos.ai' : 'http://localhost:8000';
+
+      if (!apiKey) {
+        addLog('No API key found. Please set up in the Setup section.', 'error');
+        return;
+      }
+
+      SpeechOS.init({
+        apiKey,
+        userId,
+        host,
+        debug: true,
+        alwaysVisible: false,
+      });
+      setAlwaysVisible(false);
+      setIsReinitialized(true);
+      addLog('Re-initialized with alwaysVisible: false', 'success');
+    } catch (err) {
+      addLog(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
+    }
+  };
+
+  const clearLogs = () => {
+    setLogs([]);
+  };
+
+  return (
+    <div className="test-panel">
+      <h3>Visibility & Modals Test</h3>
+      <p className="description">
+        Test the <code>alwaysVisible</code> config option and contextual modals for dictation/edit
+        when no field is focused.
+      </p>
+
+      <div className="info-box">
+        <p>
+          <strong>Features to test:</strong>
+          <br />• <code>alwaysVisible: true</code> - Widget stays visible even when no form is focused
+          <br />• <strong>Dictation Output Modal</strong> - Shown when dictating with no focused field
+          <br />• <strong>Edit Help Modal</strong> - Shown when clicking Edit with no focused field
+          <br />• <strong>Command Feedback</strong> - "Got it!" or "No command matched" badge after commands
+        </p>
+      </div>
+
+      <h4 style={{ marginBottom: '12px', color: '#333' }}>alwaysVisible Config</h4>
+      <div className="status-row" style={{ marginBottom: '16px' }}>
+        <span className={`status-badge ${alwaysVisible ? 'active' : ''}`}>
+          alwaysVisible: {alwaysVisible ? 'true' : 'false'}
+        </span>
+        <span className={`status-badge ${state.isVisible ? 'connected' : ''}`}>
+          Widget: {state.isVisible ? 'Visible' : 'Hidden'}
+        </span>
+      </div>
+
+      <div className="controls" style={{ marginBottom: '20px' }}>
+        <button className="btn btn-success" onClick={handleReinitWithAlwaysVisible}>
+          🔄 Re-init with alwaysVisible: true
+        </button>
+        <button className="btn btn-secondary" onClick={handleReinitNormal}>
+          🔄 Re-init with alwaysVisible: false
+        </button>
+      </div>
+
+      <h4 style={{ marginBottom: '12px', color: '#333' }}>Test Scenarios</h4>
+      <div style={{ background: 'white', border: '2px solid #e5e7eb', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+        <h5 style={{ fontSize: '14px', marginBottom: '12px', color: '#333' }}>1. Dictation Output Modal</h5>
+        <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
+          With the widget visible but <strong>no text field focused</strong>, click the Dictate button and speak.
+          When dictation completes, a modal should appear with the transcription and a Copy button.
+        </p>
+
+        <h5 style={{ fontSize: '14px', marginBottom: '12px', marginTop: '16px', color: '#333' }}>2. Edit Help Modal</h5>
+        <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
+          With the widget visible but <strong>no text field focused</strong>, click the Edit button.
+          A help modal should appear explaining how to use the Edit feature.
+        </p>
+
+        <h5 style={{ fontSize: '14px', marginBottom: '12px', marginTop: '16px', color: '#333' }}>3. Command Feedback</h5>
+        <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
+          Use a Command action (requires commands configured). After speaking, you should see either:
+          <br />• <strong style={{ color: '#f59e0b' }}>✓ "Got it!"</strong> - amber badge when command matched
+          <br />• <strong style={{ color: '#6b7280' }}>"No command matched"</strong> - gray badge when no match
+        </p>
+
+        <h5 style={{ fontSize: '14px', marginBottom: '12px', marginTop: '16px', color: '#333' }}>4. Normal Dictation (with focused field)</h5>
+        <p style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>
+          Focus the text field below, then dictate. Text should insert directly (no modal).
+        </p>
+        <input
+          type="text"
+          placeholder="Focus here, then dictate..."
+          style={{
+            width: '100%',
+            padding: '12px',
+            border: '2px solid #e5e7eb',
+            borderRadius: '8px',
+            fontSize: '14px',
+          }}
+        />
+      </div>
+
+      <h4 style={{ marginBottom: '12px', color: '#333' }}>
+        Event Log
+        <button
+          className="btn btn-secondary"
+          onClick={clearLogs}
+          style={{ marginLeft: '12px', padding: '4px 12px', fontSize: '12px' }}
+        >
+          Clear
+        </button>
+      </h4>
+      <div className="event-log" ref={logRef} style={{ minHeight: '150px' }}>
+        {logs.length === 0 ? (
+          <span style={{ color: '#666', fontStyle: 'italic' }}>
+            Test the scenarios above to see events...
+          </span>
+        ) : (
+          logs.map((log, i) => (
+            <div key={i} className="event-entry">
+              <span className="event-time">[{log.time}]</span>
+              <span
+                className="event-name"
+                style={{
+                  color: log.type === 'success' ? '#22c55e' : log.type === 'error' ? '#ef4444' : '#61dafb',
+                }}
+              >
+                {log.message}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

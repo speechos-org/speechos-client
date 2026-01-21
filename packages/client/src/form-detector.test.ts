@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { formDetector, FormDetector } from "./form-detector.js";
 import { events, state } from "@speechos/core";
+import * as config from "./config.js";
 
 // Helper to create and dispatch focus events
 function focusElement(element: HTMLElement): void {
@@ -255,6 +256,104 @@ describe("FormDetector", () => {
   describe("singleton instance", () => {
     it("should export a singleton formDetector", () => {
       expect(formDetector).toBeInstanceOf(FormDetector);
+    });
+  });
+
+  describe("alwaysVisible behavior", () => {
+    let isAlwaysVisibleSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      isAlwaysVisibleSpy = vi.spyOn(config, "isAlwaysVisible").mockReturnValue(false);
+      detector.start();
+    });
+
+    afterEach(() => {
+      isAlwaysVisibleSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    it("should NOT hide widget on blur when alwaysVisible is true", () => {
+      isAlwaysVisibleSpy.mockReturnValue(true);
+
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      // Focus then blur
+      focusElement(input);
+      expect(state.getState().isVisible).toBe(true);
+
+      // Blur to a non-form element
+      const div = document.createElement("div");
+      document.body.appendChild(div);
+      blurElement(input, div);
+
+      // Advance timers past the 150ms delay in blur handler
+      vi.advanceTimersByTime(200);
+
+      // Widget should remain visible when alwaysVisible is true
+      expect(state.getState().isVisible).toBe(true);
+    });
+
+    it("should hide widget on blur when alwaysVisible is false", () => {
+      isAlwaysVisibleSpy.mockReturnValue(false);
+
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      // Focus then blur
+      focusElement(input);
+      expect(state.getState().isVisible).toBe(true);
+
+      // Blur to a non-form element - need to blur directly without relatedTarget
+      // since the blur handler checks if relatedTarget is a form field
+      blurElement(input);
+
+      // Advance timers past the 150ms delay in blur handler
+      vi.advanceTimersByTime(200);
+
+      // Widget should hide when alwaysVisible is false
+      expect(state.getState().isVisible).toBe(false);
+    });
+
+    it("should still emit form:blur event when alwaysVisible is true", () => {
+      isAlwaysVisibleSpy.mockReturnValue(true);
+
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      const blurListener = vi.fn();
+      events.on("form:blur", blurListener);
+
+      focusElement(input);
+
+      // Blur without related target
+      blurElement(input);
+
+      // Advance timers past the 150ms delay in blur handler
+      vi.advanceTimersByTime(200);
+
+      // Event should still fire even when widget stays visible
+      expect(blurListener).toHaveBeenCalledWith({ element: null });
+    });
+
+    it("should NOT hide widget on stop() when alwaysVisible is true", () => {
+      isAlwaysVisibleSpy.mockReturnValue(true);
+
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      focusElement(input);
+      expect(state.getState().isVisible).toBe(true);
+
+      detector.stop();
+
+      // Widget should remain visible when alwaysVisible is true
+      expect(state.getState().isVisible).toBe(true);
     });
   });
 });

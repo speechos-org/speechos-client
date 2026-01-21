@@ -22,7 +22,7 @@ import {
   type CommandResult,
   type SpeechOSEventMap,
 } from "@speechos/core";
-import { getClientConfig } from "../config.js";
+import { getClientConfig, isAlwaysVisible } from "../config.js";
 import { getSessionSettings } from "../speechos.js";
 import { transcriptStore } from "../stores/transcript-store.js";
 
@@ -31,6 +31,8 @@ import "./mic-button.js";
 import "./action-bubbles.js";
 import "./settings-button.js";
 import "./settings-modal.js";
+import "./dictation-output-modal.js";
+import "./edit-help-modal.js";
 
 /**
  * Minimum duration to show the connecting animation (in milliseconds).
@@ -121,6 +123,18 @@ export class SpeechOSWidget extends LitElement {
   @litState()
   private settingsOpen = false;
 
+  @litState()
+  private dictationModalOpen = false;
+
+  @litState()
+  private dictationModalText = "";
+
+  @litState()
+  private editHelpModalOpen = false;
+
+  @litState()
+  private commandFeedback: "success" | "none" | null = null;
+
   private stateUnsubscribe?: UnsubscribeFn;
   private errorEventUnsubscribe?: UnsubscribeFn;
   private dictationTargetElement: HTMLElement | null = null;
@@ -132,6 +146,9 @@ export class SpeechOSWidget extends LitElement {
   private editSelectedText: string = "";
   private boundClickOutsideHandler: ((event: MouseEvent) => void) | null = null;
   private modalElement: HTMLElement | null = null;
+  private dictationModalElement: HTMLElement | null = null;
+  private editHelpModalElement: HTMLElement | null = null;
+  private commandFeedbackTimeout: number | null = null;
   private customPosition: { x: number; y: number } | null = null;
   private isDragging = false;
   private dragStartPos: { x: number; y: number } | null = null;
@@ -151,6 +168,24 @@ export class SpeechOSWidget extends LitElement {
       this.settingsOpen = false;
     });
     document.body.appendChild(this.modalElement);
+
+    // Mount dictation output modal
+    this.dictationModalElement = document.createElement(
+      "speechos-dictation-output-modal"
+    );
+    this.dictationModalElement.addEventListener("modal-close", () => {
+      this.dictationModalOpen = false;
+    });
+    document.body.appendChild(this.dictationModalElement);
+
+    // Mount edit help modal
+    this.editHelpModalElement = document.createElement(
+      "speechos-edit-help-modal"
+    );
+    this.editHelpModalElement.addEventListener("modal-close", () => {
+      this.editHelpModalOpen = false;
+    });
+    document.body.appendChild(this.editHelpModalElement);
 
     this.stateUnsubscribe = state.subscribe((newState: SpeechOSState) => {
       if (!newState.isVisible || !newState.isExpanded) {
@@ -201,6 +236,18 @@ export class SpeechOSWidget extends LitElement {
       this.modalElement.remove();
       this.modalElement = null;
     }
+    if (this.dictationModalElement) {
+      this.dictationModalElement.remove();
+      this.dictationModalElement = null;
+    }
+    if (this.editHelpModalElement) {
+      this.editHelpModalElement.remove();
+      this.editHelpModalElement = null;
+    }
+    if (this.commandFeedbackTimeout) {
+      clearTimeout(this.commandFeedbackTimeout);
+      this.commandFeedbackTimeout = null;
+    }
     if (this.stateUnsubscribe) {
       this.stateUnsubscribe();
     }
@@ -239,6 +286,15 @@ export class SpeechOSWidget extends LitElement {
   updated(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has("settingsOpen") && this.modalElement) {
       (this.modalElement as any).open = this.settingsOpen;
+    }
+    if (changedProperties.has("dictationModalOpen") && this.dictationModalElement) {
+      (this.dictationModalElement as any).open = this.dictationModalOpen;
+    }
+    if (changedProperties.has("dictationModalText") && this.dictationModalElement) {
+      (this.dictationModalElement as any).text = this.dictationModalText;
+    }
+    if (changedProperties.has("editHelpModalOpen") && this.editHelpModalElement) {
+      (this.editHelpModalElement as any).open = this.editHelpModalOpen;
     }
   }
 
@@ -287,7 +343,10 @@ export class SpeechOSWidget extends LitElement {
     }
     if (!clickedInWidget) {
       getBackend().stopAutoRefresh?.();
-      state.hide();
+      // Don't hide if alwaysVisible is enabled
+      if (!isAlwaysVisible()) {
+        state.hide();
+      }
     }
   }
 
@@ -427,6 +486,9 @@ export class SpeechOSWidget extends LitElement {
       return;
     }
     if (this.widgetState.recordingState === "idle") {
+      // Clear command feedback on any mic click
+      this.clearCommandFeedback();
+
       // If we're expanding, prefetch the token to reduce latency when user selects an action
       if (!this.widgetState.isExpanded) {
         // Fire and forget - we don't need to wait for this (LiveKit only)
@@ -453,7 +515,6 @@ export class SpeechOSWidget extends LitElement {
       await this.handleStopCommand();
     } else {
       state.stopRecording();
-      const config = getConfig();
       const backend = getBackend();
       try {
         const transcription: string = await this.withMinDisplayTime(
@@ -461,7 +522,14 @@ export class SpeechOSWidget extends LitElement {
           300
         );
         if (transcription) {
-          this.insertTranscription(transcription);
+          // Check if we have a target element to insert into
+          if (this.dictationTargetElement) {
+            this.insertTranscription(transcription);
+          } else {
+            // No target element - show dictation output modal
+            this.dictationModalText = transcription;
+            this.dictationModalOpen = true;
+          }
           transcriptStore.saveTranscript(transcription, "dictate");
         }
         state.completeRecording();
@@ -509,6 +577,7 @@ export class SpeechOSWidget extends LitElement {
   }
 
   private handleCloseWidget(): void {
+    this.clearCommandFeedback();
     getBackend().stopAutoRefresh?.();
     state.hide();
   }
@@ -639,10 +708,21 @@ export class SpeechOSWidget extends LitElement {
 
   private handleActionSelect(event: CustomEvent): void {
     const { action } = event.detail;
+
+    // Clear any existing command feedback when a new action is selected
+    this.clearCommandFeedback();
+
     state.setActiveAction(action);
     if (action === "dictate") {
       this.startDictation();
     } else if (action === "edit") {
+      // Check if there's a focused element before starting edit
+      if (!this.widgetState.focusedElement) {
+        // No focused element - show edit help modal
+        this.editHelpModalOpen = true;
+        state.setActiveAction(null);
+        return;
+      }
       this.startEdit();
     } else if (action === "command") {
       this.startCommand();
@@ -872,6 +952,13 @@ export class SpeechOSWidget extends LitElement {
       // when the command_result message is received, so we don't emit here
 
       state.completeRecording();
+
+      // Keep widget visible but collapsed (just mic button, no action bubbles)
+      state.setState({ isExpanded: false });
+
+      // Show command feedback
+      this.showCommandFeedback(result ? "success" : "none");
+
       backend.disconnect().catch(() => {});
       // Start auto-refresh to keep token fresh for subsequent commands (LiveKit only)
       backend.startAutoRefresh?.();
@@ -883,6 +970,29 @@ export class SpeechOSWidget extends LitElement {
         backend.disconnect().catch(() => {});
       }
     }
+  }
+
+  private showCommandFeedback(feedback: "success" | "none"): void {
+    this.commandFeedback = feedback;
+
+    // Clear any existing timeout
+    if (this.commandFeedbackTimeout) {
+      clearTimeout(this.commandFeedbackTimeout);
+    }
+
+    // Auto-dismiss after 4 seconds
+    this.commandFeedbackTimeout = window.setTimeout(() => {
+      this.commandFeedback = null;
+      this.commandFeedbackTimeout = null;
+    }, 4000);
+  }
+
+  private clearCommandFeedback(): void {
+    if (this.commandFeedbackTimeout) {
+      clearTimeout(this.commandFeedbackTimeout);
+      this.commandFeedbackTimeout = null;
+    }
+    this.commandFeedback = null;
   }
 
   private supportsSelection(
@@ -1007,6 +1117,7 @@ export class SpeechOSWidget extends LitElement {
             activeAction="${this.widgetState.activeAction || ""}"
             editPreviewText="${this.editSelectedText}"
             errorMessage="${this.widgetState.errorMessage || ""}"
+            .commandFeedback="${this.commandFeedback}"
             @mic-click="${this.handleMicClick}"
             @stop-recording="${this.handleStopRecording}"
             @cancel-operation="${this.handleCancelOperation}"

@@ -12,7 +12,7 @@ import {
 } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { themeStyles, animations } from "./styles/theme.js";
-import { micIcon, stopIcon, loaderIcon, xIcon } from "./icons.js";
+import { micIcon, stopIcon, loaderIcon, xIcon, checkIcon } from "./icons.js";
 import type { RecordingState, SpeechOSAction } from "@speechos/core";
 import "./audio-visualizer.js";
 
@@ -584,6 +584,47 @@ export class SpeechOSMicButton extends LitElement {
         }
       }
 
+      /* Command feedback badge - success state (amber/orange) */
+      .status-label.command-success {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        padding-left: 24px;
+        animation: command-feedback-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)
+          forwards;
+      }
+
+      .status-label.command-success::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 8px;
+        width: 12px;
+        height: 12px;
+        transform: translateY(-50%);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+      }
+
+      /* Command feedback badge - no match state (neutral gray) */
+      .status-label.command-none {
+        background: #4b5563;
+        box-shadow: 0 4px 12px rgba(75, 85, 99, 0.3);
+        animation: command-feedback-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)
+          forwards;
+      }
+
+      @keyframes command-feedback-in {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) scale(0.8) translateY(4px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(-50%) scale(1) translateY(0);
+        }
+      }
+
       /* Cancel button - positioned to the right of the main mic button */
       .cancel-button {
         position: absolute;
@@ -831,6 +872,16 @@ export class SpeechOSMicButton extends LitElement {
           left: 10px;
         }
 
+        .status-label.command-success {
+          padding-left: 30px;
+        }
+
+        .status-label.command-success::before {
+          left: 10px;
+          width: 14px;
+          height: 14px;
+        }
+
         .error-message {
           font-size: 15px;
           padding: 14px 18px;
@@ -860,6 +911,9 @@ export class SpeechOSMicButton extends LitElement {
 
   @property({ type: String })
   errorMessage: string | null = null;
+
+  @property({ type: String })
+  commandFeedback: "success" | "none" | null = null;
 
   private handleClick(e: Event): void {
     e.stopPropagation();
@@ -1032,6 +1086,16 @@ export class SpeechOSMicButton extends LitElement {
     return this.recordingState;
   }
 
+  private getCommandFeedbackLabel(): string {
+    if (this.commandFeedback === "success") {
+      return "Got it!";
+    }
+    if (this.commandFeedback === "none") {
+      return "No command matched";
+    }
+    return "";
+  }
+
   render(): TemplateResult {
     const showPulse = this.recordingState === "recording";
     const showSiriConnecting = this.recordingState === "connecting";
@@ -1041,14 +1105,16 @@ export class SpeechOSMicButton extends LitElement {
       this.recordingState === "processing" && this.activeAction === "edit";
     const statusLabel = this.getStatusLabel();
     const showVisualizer = this.shouldShowVisualizer();
-    // Show status label during recording (either visualizer or edit text)
-    const showStatus = this.recordingState === "recording";
+    // Show status label during recording (either visualizer or edit text) OR command feedback
+    const showCommandFeedback =
+      this.recordingState === "idle" && this.commandFeedback !== null;
+    const showStatus = this.recordingState === "recording" || showCommandFeedback;
     const showCancel =
       this.recordingState === "connecting" ||
       this.recordingState === "recording" ||
       this.recordingState === "processing";
     const showError = this.recordingState === "error" && this.errorMessage;
-    // Show close button in idle state (both solo mic and expanded)
+    // Show close button in idle state (both solo mic and expanded), including when showing command feedback
     const showClose = this.recordingState === "idle";
 
     return html`
@@ -1095,15 +1161,19 @@ export class SpeechOSMicButton extends LitElement {
         </button>
 
         <span
-          class="status-label ${showStatus ? "visible" : ""} ${showVisualizer
-            ? "visualizer"
-            : this.getStatusClass()}"
+          class="status-label ${showStatus ? "visible" : ""} ${showCommandFeedback
+            ? `command-${this.commandFeedback}`
+            : showVisualizer
+              ? "visualizer"
+              : this.getStatusClass()}"
         >
-          ${showVisualizer
-            ? html`<speechos-audio-visualizer
-                ?active="${showVisualizer}"
-              ></speechos-audio-visualizer>`
-            : statusLabel}
+          ${showCommandFeedback
+            ? this.getCommandFeedbackLabel()
+            : showVisualizer
+              ? html`<speechos-audio-visualizer
+                  ?active="${showVisualizer}"
+                ></speechos-audio-visualizer>`
+              : statusLabel}
         </span>
 
         <button

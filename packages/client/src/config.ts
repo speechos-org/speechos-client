@@ -28,6 +28,12 @@ export interface SpeechOSClientConfig extends SpeechOSCoreConfig {
    * Default: handles input, textarea, and contenteditable elements.
    */
   textInputHandler?: TextInputHandlerInterface;
+  /**
+   * Keep widget always visible regardless of form focus.
+   * When true, the widget remains visible even when no form field is focused.
+   * Default: false
+   */
+  alwaysVisible?: boolean;
 }
 
 /**
@@ -36,6 +42,7 @@ export interface SpeechOSClientConfig extends SpeechOSCoreConfig {
 export interface ResolvedClientConfig {
   commands: CommandDefinition[];
   zIndex: number;
+  alwaysVisible: boolean;
 }
 
 /**
@@ -44,6 +51,7 @@ export interface ResolvedClientConfig {
 const defaultClientConfig: ResolvedClientConfig = {
   commands: [],
   zIndex: 999999,
+  alwaysVisible: false,
 };
 
 /**
@@ -60,6 +68,7 @@ export function validateClientConfig(config: SpeechOSClientConfig): ResolvedClie
   const resolved: ResolvedClientConfig = {
     commands: config.commands ?? defaultClientConfig.commands,
     zIndex: config.zIndex ?? defaultClientConfig.zIndex,
+    alwaysVisible: config.alwaysVisible ?? defaultClientConfig.alwaysVisible,
   };
 
   // Validate zIndex
@@ -114,4 +123,11 @@ export function getCommands(): CommandDefinition[] {
  */
 export function getZIndex(): number {
   return currentClientConfig.zIndex;
+}
+
+/**
+ * Check if widget should always be visible
+ */
+export function isAlwaysVisible(): boolean {
+  return currentClientConfig.alwaysVisible;
 }

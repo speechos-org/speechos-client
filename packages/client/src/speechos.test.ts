@@ -227,4 +227,24 @@ describe("SpeechOS", () => {
       expect(SpeechOS.initialized).toBe(false);
     });
   });
+
+  describe("alwaysVisible config", () => {
+    it("should show widget on init when alwaysVisible is true", () => {
+      SpeechOS.init({ apiKey: "test-key", alwaysVisible: true });
+
+      expect(state.getState().isVisible).toBe(true);
+    });
+
+    it("should NOT auto-show widget on init when alwaysVisible is false", () => {
+      SpeechOS.init({ apiKey: "test-key", alwaysVisible: false });
+
+      expect(state.getState().isVisible).toBe(false);
+    });
+
+    it("should NOT auto-show widget on init when alwaysVisible is undefined", () => {
+      SpeechOS.init({ apiKey: "test-key" });
+
+      expect(state.getState().isVisible).toBe(false);
+    });
+  });
 });

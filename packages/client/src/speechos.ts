@@ -17,7 +17,7 @@ import {
   SpeechOSEventEmitter,
 } from "@speechos/core";
 import { formDetector, type FormDetectorInterface } from "./form-detector.js";
-import { setClientConfig, getClientConfig, resetClientConfig } from "./config.js";
+import { setClientConfig, getClientConfig, resetClientConfig, isAlwaysVisible } from "./config.js";
 import type { SpeechOSClientConfig } from "./config.js";
 import { setTextInputHandler, resetTextInputHandler } from "./text-input-handler.js";
 import {
@@ -111,6 +111,11 @@ export class SpeechOS {
 
     // Create and mount widget
     this.mountWidget();
+
+    // If alwaysVisible is enabled, show the widget immediately
+    if (isAlwaysVisible()) {
+      state.show();
+    }
 
     this.isInitialized = true;
 
