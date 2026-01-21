@@ -118,12 +118,12 @@ export class FormDetector implements FormDetectorInterface {
           relatedTarget?.closest("[data-speechos-no-close]")
         );
 
-        console.log("[SpeechOS] blurHandler:", {
-          relatedTarget,
-          goingToFormField,
-          goingToWidget,
-          goingToNoCloseElement,
-        });
+        // console.log("[SpeechOS] blurHandler:", {
+        //   relatedTarget,
+        //   goingToFormField,
+        //   goingToWidget,
+        //   goingToNoCloseElement,
+        // });
 
         if (goingToFormField || goingToWidget || goingToNoCloseElement) {
           console.log("[SpeechOS] blurHandler: early return, not hiding");

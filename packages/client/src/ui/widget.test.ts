@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { state, events } from "@speechos/core";
+import type { SpeechOSWidget } from "./widget.js";
 
 // Helper to mock mobile device
 function mockMobileDevice() {
@@ -79,6 +80,52 @@ describe("Widget positioning", () => {
       expect(state.getState().focusedElement).toBe(input);
       expect(state.getState().isVisible).toBe(true);
     });
+
+    it("should anchor to element on mobile when focusedElement is set", async () => {
+      // Dynamically import to ensure widget is registered
+      await import("./widget.js");
+
+      const input = document.createElement("input");
+      input.type = "text";
+      // Give it a position so getBoundingClientRect works
+      input.style.position = "absolute";
+      input.style.top = "100px";
+      input.style.left = "50px";
+      input.style.width = "200px";
+      input.style.height = "40px";
+      document.body.appendChild(input);
+
+      // Re-create widget after import
+      widget.remove();
+      widget = document.createElement("speechos-widget") as HTMLElement;
+      document.body.appendChild(widget);
+
+      state.setFocusedElement(input);
+      state.show();
+
+      // Wait for Lit to update
+      await (widget as SpeechOSWidget).updateComplete;
+
+      // Widget should have anchored-to-element class on mobile
+      expect(widget.classList.contains("anchored-to-element")).toBe(true);
+    });
+
+    it("should use default position on mobile when no focusedElement", async () => {
+      await import("./widget.js");
+
+      widget.remove();
+      widget = document.createElement("speechos-widget") as HTMLElement;
+      document.body.appendChild(widget);
+
+      // Show widget without focused element
+      state.setFocusedElement(null);
+      state.show();
+
+      await (widget as SpeechOSWidget).updateComplete;
+
+      // Widget should NOT have anchored-to-element class
+      expect(widget.classList.contains("anchored-to-element")).toBe(false);
+    });
   });
 
   describe("desktop devices", () => {
@@ -117,6 +164,44 @@ describe("Widget positioning", () => {
 
       state.setFocusedElement(null);
       expect(state.getState().focusedElement).toBe(null);
+    });
+
+    it("should NOT anchor to element on desktop even when focusedElement is set", async () => {
+      await import("./widget.js");
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.style.position = "absolute";
+      input.style.top = "100px";
+      input.style.left = "50px";
+      document.body.appendChild(input);
+
+      widget.remove();
+      widget = document.createElement("speechos-widget") as HTMLElement;
+      document.body.appendChild(widget);
+
+      state.setFocusedElement(input);
+      state.show();
+
+      await (widget as SpeechOSWidget).updateComplete;
+
+      // Widget should NOT have anchored-to-element class on desktop
+      expect(widget.classList.contains("anchored-to-element")).toBe(false);
+    });
+
+    it("should use fixed bottom position on desktop", async () => {
+      await import("./widget.js");
+
+      widget.remove();
+      widget = document.createElement("speechos-widget") as HTMLElement;
+      document.body.appendChild(widget);
+
+      state.show();
+
+      await (widget as SpeechOSWidget).updateComplete;
+
+      // Widget should have bottom position set (default fixed position)
+      expect(widget.style.bottom).toBe("12px");
     });
   });
 

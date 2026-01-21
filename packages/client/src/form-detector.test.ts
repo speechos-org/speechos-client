@@ -355,5 +355,82 @@ describe("FormDetector", () => {
       // Widget should remain visible when alwaysVisible is true
       expect(state.getState().isVisible).toBe(true);
     });
+
+    it("should still track focusedElement when alwaysVisible is true", () => {
+      isAlwaysVisibleSpy.mockReturnValue(true);
+
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      // Initially no focused element
+      expect(state.getState().focusedElement).toBe(null);
+
+      // Focus the input
+      focusElement(input);
+
+      // focusedElement should be tracked even in alwaysVisible mode
+      expect(state.getState().focusedElement).toBe(input);
+    });
+
+    it("should update focusedElement when switching fields in alwaysVisible mode", () => {
+      isAlwaysVisibleSpy.mockReturnValue(true);
+
+      const input1 = document.createElement("input");
+      input1.type = "text";
+      document.body.appendChild(input1);
+
+      const input2 = document.createElement("textarea");
+      document.body.appendChild(input2);
+
+      // Focus first input
+      focusElement(input1);
+      expect(state.getState().focusedElement).toBe(input1);
+
+      // Focus second input (simulates user tapping another field)
+      focusElement(input2);
+      expect(state.getState().focusedElement).toBe(input2);
+
+      // Widget should still be visible
+      expect(state.getState().isVisible).toBe(true);
+    });
+
+    it("should clear focusedElement on blur but keep widget visible in alwaysVisible mode", () => {
+      isAlwaysVisibleSpy.mockReturnValue(true);
+
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      // Focus then blur
+      focusElement(input);
+      expect(state.getState().focusedElement).toBe(input);
+
+      blurElement(input);
+
+      // Advance timers past the 150ms delay
+      vi.advanceTimersByTime(200);
+
+      // focusedElement should be cleared
+      expect(state.getState().focusedElement).toBe(null);
+      // But widget should remain visible
+      expect(state.getState().isVisible).toBe(true);
+    });
+
+    it("should emit form:focus event with element when focusing in alwaysVisible mode", () => {
+      isAlwaysVisibleSpy.mockReturnValue(true);
+
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      const focusListener = vi.fn();
+      events.on("form:focus", focusListener);
+
+      focusElement(input);
+
+      // Event should fire with the focused element
+      expect(focusListener).toHaveBeenCalledWith({ element: input });
+    });
   });
 });
