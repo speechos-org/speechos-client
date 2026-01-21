@@ -1,5 +1,14 @@
 # @speechos/react
 
+## 1.0.4
+
+### Patch Changes
+
+- Bump due to release error
+- Updated dependencies
+  - @speechos/client@0.2.5
+  - @speechos/core@0.2.4
+
 ## 1.0.3
 
 ### Patch Changes

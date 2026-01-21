@@ -1,5 +1,13 @@
 # @speechos/client
 
+## 0.2.5
+
+### Patch Changes
+
+- Bump due to release error
+- Updated dependencies
+  - @speechos/core@0.2.4
+
 ## 0.2.4
 
 ### Patch Changes

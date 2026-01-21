@@ -1,5 +1,11 @@
 # @speechos/core
 
+## 0.2.4
+
+### Patch Changes
+
+- Bump due to release error
+
 ## 0.2.3
 
 ### Patch Changes
