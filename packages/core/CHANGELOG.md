@@ -1,5 +1,16 @@
 # @speechos/core
 
+## 0.2.5
+
+### Patch Changes
+
+- Add no-audio warning detection and user feedback improvements
+
+  - Add no-audio warning detection to widget with automatic settings modal prompting
+  - Show feedback when no edit is understood during voice input
+  - Fix settings modal opening from no-audio warning
+  - Add recording demo HTML pages for testing
+
 ## 0.2.4
 
 ### Patch Changes
