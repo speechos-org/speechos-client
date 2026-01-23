@@ -145,7 +145,7 @@ export class SpeechOSWidget extends LitElement {
   private editHelpModalOpen = false;
 
   @litState()
-  private commandFeedback: "success" | "none" | null = null;
+  private actionFeedback: "command-success" | "command-none" | "edit-empty" | null = null;
 
   @litState()
   private showNoAudioWarning = false;
@@ -163,7 +163,7 @@ export class SpeechOSWidget extends LitElement {
   private modalElement: HTMLElement | null = null;
   private dictationModalElement: HTMLElement | null = null;
   private editHelpModalElement: HTMLElement | null = null;
-  private commandFeedbackTimeout: number | null = null;
+  private actionFeedbackTimeout: number | null = null;
   private customPosition: { x: number; y: number } | null = null;
   private isDragging = false;
   private dragStartPos: { x: number; y: number } | null = null;
@@ -265,9 +265,9 @@ export class SpeechOSWidget extends LitElement {
       this.editHelpModalElement.remove();
       this.editHelpModalElement = null;
     }
-    if (this.commandFeedbackTimeout) {
-      clearTimeout(this.commandFeedbackTimeout);
-      this.commandFeedbackTimeout = null;
+    if (this.actionFeedbackTimeout) {
+      clearTimeout(this.actionFeedbackTimeout);
+      this.actionFeedbackTimeout = null;
     }
     if (this.stateUnsubscribe) {
       this.stateUnsubscribe();
@@ -509,7 +509,7 @@ export class SpeechOSWidget extends LitElement {
     }
     if (this.widgetState.recordingState === "idle") {
       // Clear command feedback on any mic click
-      this.clearCommandFeedback();
+      this.clearActionFeedback();
 
       // If we're expanding, prefetch the token to reduce latency when user selects an action
       if (!this.widgetState.isExpanded) {
@@ -610,7 +610,7 @@ export class SpeechOSWidget extends LitElement {
   }
 
   private handleCloseWidget(): void {
-    this.clearCommandFeedback();
+    this.clearActionFeedback();
     getBackend().stopAutoRefresh?.();
     state.hide();
   }
@@ -743,7 +743,7 @@ export class SpeechOSWidget extends LitElement {
     const { action } = event.detail;
 
     // Clear any existing command feedback when a new action is selected
-    this.clearCommandFeedback();
+    this.clearActionFeedback();
 
     state.setActiveAction(action);
     if (action === "dictate") {
@@ -915,7 +915,24 @@ export class SpeechOSWidget extends LitElement {
         backend.requestEditText(originalContent),
         300
       );
-      // Track result - for edit, success means we got a response (even if empty)
+
+      // Check if server returned no change (couldn't understand edit)
+      const noChange = editedText.trim() === originalContent.trim();
+
+      if (noChange) {
+        this.trackActionResult(false);
+        this.showActionFeedback("edit-empty");
+        state.completeRecording();
+        this.editTargetElement = null;
+        this.editSelectionStart = null;
+        this.editSelectionEnd = null;
+        this.editSelectedText = "";
+        backend.disconnect().catch(() => {});
+        backend.startAutoRefresh?.();
+        return;
+      }
+
+      // Track result - got a meaningful change
       this.trackActionResult(true);
       this.applyEdit(editedText);
       backend.disconnect().catch(() => {});
@@ -1012,7 +1029,7 @@ export class SpeechOSWidget extends LitElement {
       state.setState({ isExpanded: false });
 
       // Show command feedback
-      this.showCommandFeedback(result ? "success" : "none");
+      this.showActionFeedback(result ? "command-success" : "command-none");
 
       backend.disconnect().catch(() => {});
       // Start auto-refresh to keep token fresh for subsequent commands (LiveKit only)
@@ -1029,27 +1046,27 @@ export class SpeechOSWidget extends LitElement {
     }
   }
 
-  private showCommandFeedback(feedback: "success" | "none"): void {
-    this.commandFeedback = feedback;
+  private showActionFeedback(feedback: "command-success" | "command-none" | "edit-empty"): void {
+    this.actionFeedback = feedback;
 
     // Clear any existing timeout
-    if (this.commandFeedbackTimeout) {
-      clearTimeout(this.commandFeedbackTimeout);
+    if (this.actionFeedbackTimeout) {
+      clearTimeout(this.actionFeedbackTimeout);
     }
 
     // Auto-dismiss after 4 seconds
-    this.commandFeedbackTimeout = window.setTimeout(() => {
-      this.commandFeedback = null;
-      this.commandFeedbackTimeout = null;
+    this.actionFeedbackTimeout = window.setTimeout(() => {
+      this.actionFeedback = null;
+      this.actionFeedbackTimeout = null;
     }, 4000);
   }
 
-  private clearCommandFeedback(): void {
-    if (this.commandFeedbackTimeout) {
-      clearTimeout(this.commandFeedbackTimeout);
-      this.commandFeedbackTimeout = null;
+  private clearActionFeedback(): void {
+    if (this.actionFeedbackTimeout) {
+      clearTimeout(this.actionFeedbackTimeout);
+      this.actionFeedbackTimeout = null;
     }
-    this.commandFeedback = null;
+    this.actionFeedback = null;
   }
 
   /**
@@ -1241,7 +1258,7 @@ export class SpeechOSWidget extends LitElement {
             activeAction="${this.widgetState.activeAction || ""}"
             editPreviewText="${this.editSelectedText}"
             errorMessage="${this.widgetState.errorMessage || ""}"
-            .commandFeedback="${this.commandFeedback}"
+            .actionFeedback="${this.actionFeedback}"
             ?showNoAudioWarning="${this.showNoAudioWarning}"
             @mic-click="${this.handleMicClick}"
             @stop-recording="${this.handleStopRecording}"

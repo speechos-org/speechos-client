@@ -606,8 +606,9 @@ export class SpeechOSMicButton extends LitElement {
         background-position: center;
       }
 
-      /* Command feedback badge - no match state (neutral gray) */
-      .status-label.command-none {
+      /* Command/edit feedback badge - no match/empty state (neutral gray) */
+      .status-label.command-none,
+      .status-label.edit-empty {
         background: #4b5563;
         box-shadow: 0 4px 12px rgba(75, 85, 99, 0.3);
         animation: command-feedback-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)
@@ -982,7 +983,7 @@ export class SpeechOSMicButton extends LitElement {
   errorMessage: string | null = null;
 
   @property({ type: String })
-  commandFeedback: "success" | "none" | null = null;
+  actionFeedback: "command-success" | "command-none" | "edit-empty" | null = null;
 
   @property({ type: Boolean })
   showNoAudioWarning = false;
@@ -1170,12 +1171,15 @@ export class SpeechOSMicButton extends LitElement {
     return this.recordingState;
   }
 
-  private getCommandFeedbackLabel(): string {
-    if (this.commandFeedback === "success") {
+  private getActionFeedbackLabel(): string {
+    if (this.actionFeedback === "command-success") {
       return "Got it!";
     }
-    if (this.commandFeedback === "none") {
+    if (this.actionFeedback === "command-none") {
       return "No command matched";
+    }
+    if (this.actionFeedback === "edit-empty") {
+      return "Couldn't understand edit";
     }
     return "";
   }
@@ -1189,10 +1193,10 @@ export class SpeechOSMicButton extends LitElement {
       this.recordingState === "processing" && this.activeAction === "edit";
     const statusLabel = this.getStatusLabel();
     const showVisualizer = this.shouldShowVisualizer();
-    // Show status label during recording (either visualizer or edit text) OR command feedback
-    const showCommandFeedback =
-      this.recordingState === "idle" && this.commandFeedback !== null;
-    const showStatus = this.recordingState === "recording" || showCommandFeedback;
+    // Show status label during recording (either visualizer or edit text) OR action feedback
+    const showActionFeedback =
+      this.recordingState === "idle" && this.actionFeedback !== null;
+    const showStatus = this.recordingState === "recording" || showActionFeedback;
     const showCancel =
       this.recordingState === "connecting" ||
       this.recordingState === "recording" ||
@@ -1274,14 +1278,14 @@ export class SpeechOSMicButton extends LitElement {
         </button>
 
         <span
-          class="status-label ${showStatus ? "visible" : ""} ${showCommandFeedback
-            ? `command-${this.commandFeedback}`
+          class="status-label ${showStatus ? "visible" : ""} ${showActionFeedback
+            ? this.actionFeedback
             : showVisualizer
               ? "visualizer"
               : this.getStatusClass()}"
         >
-          ${showCommandFeedback
-            ? this.getCommandFeedbackLabel()
+          ${showActionFeedback
+            ? this.getActionFeedbackLabel()
             : showVisualizer
               ? html`<speechos-audio-visualizer
                   ?active="${showVisualizer}"
