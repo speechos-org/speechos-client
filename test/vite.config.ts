@@ -29,6 +29,13 @@ const routingPlugin = () => ({
       if (req.url?.startsWith("/packages/")) {
         req.url = "/../" + req.url;
       }
+      // Clean URLs for demo pages
+      if (req.url === "/demo-dictation") {
+        req.url = "/demo-dictation.html";
+      }
+      if (req.url === "/demo-lights") {
+        req.url = "/demo-lights.html";
+      }
       next();
     });
   },

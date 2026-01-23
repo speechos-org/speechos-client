@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeechOS - Dictation Demo</title>
+  <style>
+    :root {
+      --bg-primary: #09090b;
+      --bg-secondary: #18181b;
+      --bg-tertiary: #27272a;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent-primary: #10b981;
+      --accent-primary-hover: #34d399;
+      --accent-secondary: #8b5cf6;
+      --border-primary: #27272a;
+      --border-subtle: #3f3f46;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Grid pattern overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.03;
+      background-image:
+        linear-gradient(var(--text-primary) 1px, transparent 1px),
+        linear-gradient(90deg, var(--text-primary) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Radial glow */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.15) 0%, rgba(139, 92, 246, 0.08) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* API Key Modal */
+    .api-key-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .api-key-modal.hidden {
+      display: none;
+    }
+
+    .modal-content {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .modal-content h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .modal-content p {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border-primary);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+
+    .form-group select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a1a1aa'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 40px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, #059669 100%);
+      color: white;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Main demo container */
+    .demo-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 900px;
+      padding: 40px 24px;
+    }
+
+    .demo-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .demo-header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .demo-header p {
+      font-size: 18px;
+      color: var(--text-secondary);
+    }
+
+    /* Dictation text area */
+    .dictation-container {
+      position: relative;
+    }
+
+    .dictation-textarea {
+      width: 100%;
+      min-height: 400px;
+      padding: 32px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-primary);
+      border-radius: 16px;
+      color: var(--text-primary);
+      font-size: 24px;
+      font-family: inherit;
+      line-height: 1.6;
+      resize: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .dictation-textarea:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+    }
+
+    .dictation-textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Glow behind textarea when focused */
+    .dictation-container::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 20px;
+      opacity: 0;
+      filter: blur(20px);
+      transition: opacity 0.3s;
+      z-index: -1;
+    }
+
+    .dictation-container:focus-within::before {
+      opacity: 0.2;
+    }
+
+    /* Instructions */
+    .instructions {
+      margin-top: 24px;
+      padding: 16px 24px;
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .instructions-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .instructions-icon svg {
+      width: 20px;
+      height: 20px;
+      color: white;
+    }
+
+    .instructions-text {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .instructions-text strong {
+      color: var(--text-primary);
+    }
+
+    /* Clear button */
+    .clear-btn {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      padding: 8px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .dictation-textarea:not(:placeholder-shown)~.clear-btn {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .clear-btn:hover {
+      background: var(--border-subtle);
+      color: var(--text-primary);
+    }
+
+    /* Settings button */
+    .settings-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 100;
+    }
+
+    .settings-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .settings-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Status indicator */
+    .status-indicator {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      z-index: 100;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status-indicator.connected .status-dot {
+      background: var(--accent-primary);
+      box-shadow: 0 0 8px var(--accent-primary);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- API Key Modal -->
+  <div class="api-key-modal" id="api-key-modal">
+    <div class="modal-content">
+      <h2>🎙️ SpeechOS Demo</h2>
+      <p>Enter your API key to start the dictation demo</p>
+
+      <div class="form-group">
+        <label for="api-key-input">Client API Key</label>
+        <input type="text" id="api-key-input" placeholder="Paste your client API key...">
+      </div>
+
+      <div class="form-group">
+        <label for="environment-select">Environment</label>
+        <select id="environment-select">
+          <option value="local">Local (localhost:8000)</option>
+          <option value="prod">Production (app.speechos.ai)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" id="start-btn" onclick="startDemo()">
+        Start Demo
+      </button>
+    </div>
+  </div>
+
+  <!-- Status Indicator -->
+  <div class="status-indicator" id="status-indicator">
+    <span class="status-dot"></span>
+    <span id="status-text">Not Connected</span>
+  </div>
+
+  <!-- Settings Button -->
+  <button class="settings-btn" onclick="showSettings()" title="Change settings">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  </button>
+
+  <!-- Main Demo -->
+  <div class="demo-container">
+    <div class="demo-header">
+      <h1>Dictation Demo</h1>
+      <p>Click the text area, then use the microphone to dictate</p>
+    </div>
+
+    <div class="dictation-container">
+      <textarea class="dictation-textarea" id="dictation-textarea"
+        placeholder="Click here and start speaking..."></textarea>
+      <button class="clear-btn" onclick="clearText()">Clear</button>
+    </div>
+
+    <div class="instructions">
+      <div class="instructions-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div class="instructions-text">
+        <strong>How to use:</strong> Click the text area above, then click the microphone button that appears.
+        Select "Dictate" and start speaking. Your speech will be transcribed in real-time.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ENVIRONMENTS = {
+      local: 'http://localhost:8000',
+      prod: 'https://app.speechos.ai'
+    };
+
+    // Load saved settings
+    function loadSettings() {
+      const savedApiKey = localStorage.getItem('speechos-api-key');
+      const savedEnv = localStorage.getItem('speechos-environment') || 'local';
+
+      if (savedApiKey) {
+        document.getElementById('api-key-input').value = savedApiKey;
+      }
+      document.getElementById('environment-select').value = savedEnv;
+    }
+
+    // Check if we should auto-start
+    function checkAutoStart() {
+      const savedApiKey = localStorage.getItem('speechos-api-key');
+      if (savedApiKey) {
+        startDemo();
+      }
+    }
+
+    function showSettings() {
+      document.getElementById('api-key-modal').classList.remove('hidden');
+    }
+
+    function startDemo() {
+      const apiKey = document.getElementById('api-key-input').value.trim();
+      const environment = document.getElementById('environment-select').value;
+
+      if (!apiKey) {
+        document.getElementById('api-key-input').focus();
+        return;
+      }
+
+      // Save settings
+      localStorage.setItem('speechos-api-key', apiKey);
+      localStorage.setItem('speechos-environment', environment);
+
+      // Hide modal
+      document.getElementById('api-key-modal').classList.add('hidden');
+
+      // Initialize SpeechOS
+      initializeSpeechOS(apiKey, environment);
+    }
+
+    function initializeSpeechOS(apiKey, environment) {
+      if (typeof window.SpeechOS === 'undefined') {
+        console.error('SpeechOS SDK not loaded');
+        updateStatus('SDK Error', false);
+        return;
+      }
+
+      try {
+        window.SpeechOS.init({
+          apiKey: apiKey,
+          host: ENVIRONMENTS[environment],
+          debug: true,
+          alwaysVisible: true,
+        });
+
+        updateStatus('Connected', true);
+
+        // Listen for events
+        window.SpeechOS.events.on('transcription:inserted', ({ text }) => {
+          console.log('Transcription:', text);
+        });
+
+        window.SpeechOS.events.on('state:change', ({ state }) => {
+          if (state.recordingState === 'recording') {
+            updateStatus('Recording...', true);
+          } else if (state.recordingState === 'processing') {
+            updateStatus('Processing...', true);
+          } else {
+            updateStatus('Connected', true);
+          }
+        });
+
+      } catch (error) {
+        console.error('Failed to initialize SpeechOS:', error);
+        updateStatus('Error', false);
+      }
+    }
+
+    function updateStatus(text, connected) {
+      const indicator = document.getElementById('status-indicator');
+      const statusText = document.getElementById('status-text');
+
+      statusText.textContent = text;
+      indicator.classList.toggle('connected', connected);
+    }
+
+    function clearText() {
+      document.getElementById('dictation-textarea').value = '';
+      document.getElementById('dictation-textarea').focus();
+    }
+
+    // Handle Enter key in API key input
+    document.getElementById('api-key-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        startDemo();
+      }
+    });
+
+    // Load SDK
+    function loadSDK() {
+      const script = document.createElement('script');
+      script.src = '/packages/client/dist/index.iife.js';
+      script.onload = () => {
+        console.log('SpeechOS SDK loaded');
+        loadSettings();
+        checkAutoStart();
+      };
+      script.onerror = () => {
+        console.error('Failed to load SpeechOS SDK');
+        updateStatus('SDK Not Found', false);
+      };
+      document.head.appendChild(script);
+    }
+
+    window.addEventListener('load', loadSDK);
+  </script>
+</body>
+
+</html>

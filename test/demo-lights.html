@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeechOS - Voice Commands Demo</title>
+  <style>
+    :root {
+      --bg-primary: #09090b;
+      --bg-secondary: #18181b;
+      --bg-tertiary: #27272a;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent-primary: #10b981;
+      --accent-primary-hover: #34d399;
+      --accent-secondary: #8b5cf6;
+      --accent-command: #f59e0b;
+      --border-primary: #27272a;
+      --border-subtle: #3f3f46;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Grid pattern overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.03;
+      background-image:
+        linear-gradient(var(--text-primary) 1px, transparent 1px),
+        linear-gradient(90deg, var(--text-primary) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Radial glow */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 1000px;
+      height: 800px;
+      background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.1) 0%, rgba(139, 92, 246, 0.05) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* API Key Modal */
+    .api-key-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .api-key-modal.hidden {
+      display: none;
+    }
+
+    .modal-content {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .modal-content h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .modal-content p {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border-primary);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent-command);
+    }
+
+    .form-group select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a1a1aa'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 40px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-command) 0%, #d97706 100%);
+      color: white;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Main demo container */
+    .demo-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 900px;
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .demo-header {
+      margin-bottom: 64px;
+    }
+
+    .demo-header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--accent-command) 0%, #f97316 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .demo-header p {
+      font-size: 18px;
+      color: var(--text-secondary);
+    }
+
+    /* Lights grid */
+    .lights-grid {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+      margin-bottom: 64px;
+    }
+
+    .light-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .light {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .light.red {
+      background: #3d1515;
+    }
+
+    .light.green {
+      background: #153d1a;
+    }
+
+    .light.blue {
+      background: #15233d;
+    }
+
+    .light.yellow {
+      background: #3d3515;
+    }
+
+    .light.purple {
+      background: #2e153d;
+    }
+
+    .light.on.red {
+      background: #ef4444;
+      box-shadow:
+        0 0 40px #ef4444,
+        0 0 80px rgba(239, 68, 68, 0.5),
+        0 0 120px rgba(239, 68, 68, 0.3);
+    }
+
+    .light.on.green {
+      background: #22c55e;
+      box-shadow:
+        0 0 40px #22c55e,
+        0 0 80px rgba(34, 197, 94, 0.5),
+        0 0 120px rgba(34, 197, 94, 0.3);
+    }
+
+    .light.on.blue {
+      background: #3b82f6;
+      box-shadow:
+        0 0 40px #3b82f6,
+        0 0 80px rgba(59, 130, 246, 0.5),
+        0 0 120px rgba(59, 130, 246, 0.3);
+    }
+
+    .light.on.yellow {
+      background: #eab308;
+      box-shadow:
+        0 0 40px #eab308,
+        0 0 80px rgba(234, 179, 8, 0.5),
+        0 0 120px rgba(234, 179, 8, 0.3);
+    }
+
+    .light.on.purple {
+      background: #a855f7;
+      box-shadow:
+        0 0 40px #a855f7,
+        0 0 80px rgba(168, 85, 247, 0.5),
+        0 0 120px rgba(168, 85, 247, 0.3);
+    }
+
+    .light-label {
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    /* Available commands */
+    .commands-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: left;
+    }
+
+    .commands-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .command-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+    }
+
+    .command-item {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .command-name {
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 13px;
+      background: var(--bg-tertiary);
+      padding: 4px 10px;
+      border-radius: 4px;
+      color: var(--accent-command);
+    }
+
+    .command-desc {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* Settings button */
+    .settings-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 100;
+    }
+
+    .settings-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .settings-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Status indicator */
+    .status-indicator {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      z-index: 100;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status-indicator.connected .status-dot {
+      background: var(--accent-primary);
+      box-shadow: 0 0 8px var(--accent-primary);
+    }
+
+    .status-indicator.listening .status-dot {
+      background: var(--accent-command);
+      box-shadow: 0 0 8px var(--accent-command);
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- API Key Modal -->
+  <div class="api-key-modal" id="api-key-modal">
+    <div class="modal-content">
+      <h2>⚡ Voice Commands Demo</h2>
+      <p>Enter your API key to start controlling lights with your voice</p>
+
+      <div class="form-group">
+        <label for="api-key-input">Client API Key</label>
+        <input type="text" id="api-key-input" placeholder="Paste your client API key...">
+      </div>
+
+      <div class="form-group">
+        <label for="environment-select">Environment</label>
+        <select id="environment-select">
+          <option value="local">Local (localhost:8000)</option>
+          <option value="prod">Production (app.speechos.ai)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" id="start-btn" onclick="startDemo()">
+        Start Demo
+      </button>
+    </div>
+  </div>
+
+  <!-- Status Indicator -->
+  <div class="status-indicator" id="status-indicator">
+    <span class="status-dot"></span>
+    <span id="status-text">Not Connected</span>
+  </div>
+
+  <!-- Settings Button -->
+  <button class="settings-btn" onclick="showSettings()" title="Change settings">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  </button>
+
+  <!-- Main Demo -->
+  <div class="demo-container">
+    <div class="demo-header">
+      <h1>Voice Commands</h1>
+      <p>Say commands to control the lights</p>
+    </div>
+
+    <!-- Lights -->
+    <div class="lights-grid">
+      <div class="light-wrapper">
+        <div class="light red" id="light-red" onclick="toggleLight('red')"></div>
+        <span class="light-label">Red</span>
+      </div>
+      <div class="light-wrapper">
+        <div class="light green" id="light-green" onclick="toggleLight('green')"></div>
+        <span class="light-label">Green</span>
+      </div>
+      <div class="light-wrapper">
+        <div class="light blue" id="light-blue" onclick="toggleLight('blue')"></div>
+        <span class="light-label">Blue</span>
+      </div>
+      <div class="light-wrapper">
+        <div class="light yellow" id="light-yellow" onclick="toggleLight('yellow')"></div>
+        <span class="light-label">Yellow</span>
+      </div>
+      <div class="light-wrapper">
+        <div class="light purple" id="light-purple" onclick="toggleLight('purple')"></div>
+        <span class="light-label">Purple</span>
+      </div>
+    </div>
+
+    <!-- Available Commands -->
+    <div class="commands-section">
+      <h3>Available Commands</h3>
+      <div class="command-list">
+        <div class="command-item">
+          <span class="command-name">turn on [color]</span>
+          <span class="command-desc">Turn on a light</span>
+        </div>
+        <div class="command-item">
+          <span class="command-name">turn off [color]</span>
+          <span class="command-desc">Turn off a light</span>
+        </div>
+        <div class="command-item">
+          <span class="command-name">toggle [color]</span>
+          <span class="command-desc">Toggle a light</span>
+        </div>
+        <div class="command-item">
+          <span class="command-name">all on</span>
+          <span class="command-desc">Turn on all lights</span>
+        </div>
+        <div class="command-item">
+          <span class="command-name">all off</span>
+          <span class="command-desc">Turn off all lights</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ENVIRONMENTS = {
+      local: 'http://localhost:8000',
+      prod: 'https://app.speechos.ai'
+    };
+
+    const VALID_COLORS = ['red', 'green', 'blue', 'yellow', 'purple'];
+
+    // Command definitions for SpeechOS
+    const LIGHT_COMMANDS = [
+      {
+        name: 'turn_on',
+        description: 'Turn on a specific light by color',
+        arguments: [
+          {
+            name: 'color',
+            description: 'The color of the light to turn on (red, green, blue, yellow, purple)',
+            type: 'string',
+            required: true
+          }
+        ]
+      },
+      {
+        name: 'turn_off',
+        description: 'Turn off a specific light by color',
+        arguments: [
+          {
+            name: 'color',
+            description: 'The color of the light to turn off (red, green, blue, yellow, purple)',
+            type: 'string',
+            required: true
+          }
+        ]
+      },
+      {
+        name: 'toggle',
+        description: 'Toggle a specific light on or off',
+        arguments: [
+          {
+            name: 'color',
+            description: 'The color of the light to toggle (red, green, blue, yellow, purple)',
+            type: 'string',
+            required: true
+          }
+        ]
+      },
+      {
+        name: 'all_on',
+        description: 'Turn on all lights at once'
+      },
+      {
+        name: 'all_off',
+        description: 'Turn off all lights at once'
+      }
+    ];
+
+    // Load saved settings
+    function loadSettings() {
+      const savedApiKey = localStorage.getItem('speechos-api-key');
+      const savedEnv = localStorage.getItem('speechos-environment') || 'local';
+
+      if (savedApiKey) {
+        document.getElementById('api-key-input').value = savedApiKey;
+      }
+      document.getElementById('environment-select').value = savedEnv;
+    }
+
+    // Check if we should auto-start
+    function checkAutoStart() {
+      const savedApiKey = localStorage.getItem('speechos-api-key');
+      if (savedApiKey) {
+        startDemo();
+      }
+    }
+
+    function showSettings() {
+      document.getElementById('api-key-modal').classList.remove('hidden');
+    }
+
+    function startDemo() {
+      const apiKey = document.getElementById('api-key-input').value.trim();
+      const environment = document.getElementById('environment-select').value;
+
+      if (!apiKey) {
+        document.getElementById('api-key-input').focus();
+        return;
+      }
+
+      // Save settings
+      localStorage.setItem('speechos-api-key', apiKey);
+      localStorage.setItem('speechos-environment', environment);
+
+      // Hide modal
+      document.getElementById('api-key-modal').classList.add('hidden');
+
+      // Initialize SpeechOS
+      initializeSpeechOS(apiKey, environment);
+    }
+
+    function initializeSpeechOS(apiKey, environment) {
+      if (typeof window.SpeechOS === 'undefined') {
+        console.error('SpeechOS SDK not loaded');
+        updateStatus('SDK Error', 'error');
+        return;
+      }
+
+      try {
+        window.SpeechOS.init({
+          apiKey: apiKey,
+          host: ENVIRONMENTS[environment],
+          debug: true,
+          alwaysVisible: true,
+          commands: LIGHT_COMMANDS,
+        });
+
+        updateStatus('Connected', 'connected');
+
+        // Listen for command events
+        window.SpeechOS.events.on('command:complete', (payload) => {
+          console.log('Command received:', payload);
+          handleCommandResult(payload.command);
+        });
+
+        window.SpeechOS.events.on('state:change', ({ state }) => {
+          if (state.recordingState === 'recording') {
+            updateStatus('Listening...', 'listening');
+          } else if (state.recordingState === 'processing') {
+            updateStatus('Processing...', 'connected');
+          } else {
+            updateStatus('Connected', 'connected');
+          }
+        });
+
+      } catch (error) {
+        console.error('Failed to initialize SpeechOS:', error);
+        updateStatus('Error', 'error');
+      }
+    }
+
+    function updateStatus(text, state) {
+      const indicator = document.getElementById('status-indicator');
+      const statusText = document.getElementById('status-text');
+
+      statusText.textContent = text;
+      indicator.className = 'status-indicator ' + state;
+    }
+
+    function normalizeColor(color) {
+      if (!color) return null;
+      const normalized = color.toLowerCase().trim();
+      if (normalized.includes('red')) return 'red';
+      if (normalized.includes('green')) return 'green';
+      if (normalized.includes('blue')) return 'blue';
+      if (normalized.includes('yellow')) return 'yellow';
+      if (normalized.includes('purple') || normalized.includes('violet')) return 'purple';
+      return VALID_COLORS.includes(normalized) ? normalized : null;
+    }
+
+    function setLightState(color, on) {
+      const light = document.getElementById(`light-${color}`);
+      if (light) {
+        if (on) {
+          light.classList.add('on');
+        } else {
+          light.classList.remove('on');
+        }
+      }
+    }
+
+    function toggleLight(color) {
+      const light = document.getElementById(`light-${color}`);
+      if (light) {
+        light.classList.toggle('on');
+      }
+    }
+
+    function toggleAllLights(on) {
+      VALID_COLORS.forEach(color => setLightState(color, on));
+    }
+
+    function handleCommandResult(command) {
+      if (!command) {
+        console.log('No command recognized');
+        return;
+      }
+
+      const { name, arguments: args } = command;
+
+      switch (name) {
+        case 'turn_on': {
+          const color = normalizeColor(args?.color);
+          if (color) {
+            setLightState(color, true);
+          }
+          break;
+        }
+        case 'turn_off': {
+          const color = normalizeColor(args?.color);
+          if (color) {
+            setLightState(color, false);
+          }
+          break;
+        }
+        case 'toggle': {
+          const color = normalizeColor(args?.color);
+          if (color) {
+            toggleLight(color);
+          }
+          break;
+        }
+        case 'all_on':
+          toggleAllLights(true);
+          break;
+        case 'all_off':
+          toggleAllLights(false);
+          break;
+      }
+    }
+
+    // Handle Enter key in API key input
+    document.getElementById('api-key-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        startDemo();
+      }
+    });
+
+    // Load SDK
+    function loadSDK() {
+      const script = document.createElement('script');
+      script.src = '/packages/client/dist/index.iife.js';
+      script.onload = () => {
+        console.log('SpeechOS SDK loaded');
+        loadSettings();
+        checkAutoStart();
+      };
+      script.onerror = () => {
+        console.error('Failed to load SpeechOS SDK');
+        updateStatus('SDK Not Found', 'error');
+      };
+      document.head.appendChild(script);
+    }
+
+    window.addEventListener('load', loadSDK);
+  </script>
+</body>
+
+</html>

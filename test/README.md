@@ -1,6 +1,15 @@
 # Manual Testing Guide
 
-This directory contains a test page for manually testing the SpeechOS Client SDK in a live browser environment.
+This directory contains test and demo pages for the SpeechOS Client SDK.
+
+## Available Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| **Main Test Page** | `/` or `/index.html` | Full SDK testing with all features |
+| **React Hooks Test** | `/react.html` | React integration testing |
+| **Dictation Demo** | `/demo-dictation.html` | Clean dictation demo for recordings |
+| **Voice Commands Demo** | `/demo-lights.html` | Light control demo with voice commands |
 
 ## Quick Start
 
@@ -118,6 +127,30 @@ To test the ESM build, create a new test file with:
 1. Rebuild: `npm run build`
 2. Hard refresh browser: Ctrl+Shift+R (Cmd+Shift+R on Mac)
 3. Clear browser cache if needed
+
+## Demo Pages
+
+### Dictation Demo (`/demo-dictation.html`)
+
+A clean, minimal demo page designed for recording demos of the dictation feature:
+
+- Dark background with subtle grid pattern (matching SpeechOS landing page style)
+- Large centered text area for dictation
+- Prompts for API key on first visit, saves to localStorage
+- Auto-initializes on subsequent visits
+- Status indicator shows connection state
+
+### Voice Commands Demo (`/demo-lights.html`)
+
+A demo page showcasing voice command functionality:
+
+- Control colored lights using voice commands
+- Commands: `turn on [color]`, `turn off [color]`, `toggle [color]`, `all on`, `all off`
+- Visually stunning light effects with glow animations
+- Same dark background styling as dictation demo
+- API key saved across sessions
+
+Both demo pages share saved credentials with the main test page via localStorage.
 
 ## Development Mode
 
