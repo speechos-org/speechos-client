@@ -41,6 +41,18 @@ import "./edit-help-modal.js";
  */
 const MIN_CONNECTING_ANIMATION_MS = 200;
 
+/**
+ * Time to wait for a transcription event before showing the "no audio" warning (in milliseconds).
+ * If no transcription:interim event is received within this time during recording,
+ * it indicates the server isn't receiving/processing audio.
+ */
+const NO_AUDIO_WARNING_TIMEOUT_MS = 5000;
+
+/**
+ * Number of consecutive actions with empty results before showing warning on next action.
+ */
+const CONSECUTIVE_NO_AUDIO_THRESHOLD = 2;
+
 @customElement("speechos-widget")
 export class SpeechOSWidget extends LitElement {
   static styles: CSSResultGroup = [
@@ -135,6 +147,9 @@ export class SpeechOSWidget extends LitElement {
   @litState()
   private commandFeedback: "success" | "none" | null = null;
 
+  @litState()
+  private showNoAudioWarning = false;
+
   private stateUnsubscribe?: UnsubscribeFn;
   private errorEventUnsubscribe?: UnsubscribeFn;
   private dictationTargetElement: HTMLElement | null = null;
@@ -160,6 +175,12 @@ export class SpeechOSWidget extends LitElement {
   private boundViewportResizeHandler: (() => void) | null = null;
   private boundScrollHandler: (() => void) | null = null;
   private static readonly KEYBOARD_HEIGHT_THRESHOLD = 150;
+
+  // No-audio warning state tracking
+  private consecutiveNoAudioActions = 0;
+  private transcriptionReceived = false;
+  private noAudioWarningTimeout: number | null = null;
+  private transcriptionInterimUnsubscribe: UnsubscribeFn | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -281,6 +302,7 @@ export class SpeechOSWidget extends LitElement {
       window.removeEventListener("scroll", this.boundScrollHandler);
       this.boundScrollHandler = null;
     }
+    this.cleanupNoAudioWarningTracking();
   }
 
   updated(changedProperties: Map<string, unknown>): void {
@@ -509,6 +531,9 @@ export class SpeechOSWidget extends LitElement {
   }
 
   private async handleStopRecording(): Promise<void> {
+    // Clean up no-audio warning tracking
+    this.cleanupNoAudioWarningTracking();
+
     if (this.widgetState.activeAction === "edit") {
       await this.handleStopEdit();
     } else if (this.widgetState.activeAction === "command") {
@@ -521,6 +546,9 @@ export class SpeechOSWidget extends LitElement {
           backend.stopVoiceSession(),
           300
         );
+        // Track result for consecutive failure detection
+        this.trackActionResult(!!transcription);
+
         if (transcription) {
           // Check if we have a target element to insert into
           if (this.dictationTargetElement) {
@@ -538,6 +566,8 @@ export class SpeechOSWidget extends LitElement {
         // Start auto-refresh to keep token fresh for subsequent commands (LiveKit only)
         backend.startAutoRefresh?.();
       } catch (error) {
+        // Track as failed result
+        this.trackActionResult(false);
         const errorMessage =
           error instanceof Error ? error.message : "Failed to transcribe audio";
         if (errorMessage !== "Disconnected") {
@@ -549,6 +579,9 @@ export class SpeechOSWidget extends LitElement {
   }
 
   private async handleCancelOperation(): Promise<void> {
+    // Clean up no-audio warning tracking
+    this.cleanupNoAudioWarningTracking();
+
     await getBackend().disconnect();
     if (this.widgetState.recordingState === "error") {
       state.clearError();
@@ -778,9 +811,11 @@ export class SpeechOSWidget extends LitElement {
           if (remainingDelay > 0) {
             setTimeout(() => {
               state.setRecordingState("recording");
+              this.startNoAudioWarningTracking();
             }, remainingDelay);
           } else {
             state.setRecordingState("recording");
+            this.startNoAudioWarningTracking();
           }
         },
       });
@@ -850,9 +885,11 @@ export class SpeechOSWidget extends LitElement {
           if (remainingDelay > 0) {
             setTimeout(() => {
               state.setRecordingState("recording");
+              this.startNoAudioWarningTracking();
             }, remainingDelay);
           } else {
             state.setRecordingState("recording");
+            this.startNoAudioWarningTracking();
           }
         },
       });
@@ -878,11 +915,15 @@ export class SpeechOSWidget extends LitElement {
         backend.requestEditText(originalContent),
         300
       );
+      // Track result - for edit, success means we got a response (even if empty)
+      this.trackActionResult(true);
       this.applyEdit(editedText);
       backend.disconnect().catch(() => {});
       // Start auto-refresh to keep token fresh for subsequent commands (LiveKit only)
       backend.startAutoRefresh?.();
     } catch (error) {
+      // Track as failed result
+      this.trackActionResult(false);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to apply edit";
       if (errorMessage !== "Disconnected") {
@@ -912,9 +953,11 @@ export class SpeechOSWidget extends LitElement {
           if (remainingDelay > 0) {
             setTimeout(() => {
               state.setRecordingState("recording");
+              this.startNoAudioWarningTracking();
             }, remainingDelay);
           } else {
             state.setRecordingState("recording");
+            this.startNoAudioWarningTracking();
           }
         },
       });
@@ -942,6 +985,9 @@ export class SpeechOSWidget extends LitElement {
         backend.requestCommand(commands),
         300
       );
+
+      // Track result - null result means no command matched (possibly no audio)
+      this.trackActionResult(result !== null);
 
       // Get input text from the backend if available
       const inputText = (backend as { getLastInputText?: () => string | undefined }).getLastInputText?.();
@@ -972,6 +1018,8 @@ export class SpeechOSWidget extends LitElement {
       // Start auto-refresh to keep token fresh for subsequent commands (LiveKit only)
       backend.startAutoRefresh?.();
     } catch (error) {
+      // Track as failed result
+      this.trackActionResult(false);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to process command";
       if (errorMessage !== "Disconnected") {
@@ -1002,6 +1050,73 @@ export class SpeechOSWidget extends LitElement {
       this.commandFeedbackTimeout = null;
     }
     this.commandFeedback = null;
+  }
+
+  /**
+   * Start tracking for no-audio warning when recording begins.
+   */
+  private startNoAudioWarningTracking(): void {
+    this.transcriptionReceived = false;
+    this.showNoAudioWarning = false;
+
+    // If we had consecutive failures, show warning immediately
+    if (this.consecutiveNoAudioActions >= CONSECUTIVE_NO_AUDIO_THRESHOLD) {
+      this.showNoAudioWarning = true;
+    }
+
+    // Start timeout - if no transcription within 5s, show warning
+    this.noAudioWarningTimeout = window.setTimeout(() => {
+      if (
+        !this.transcriptionReceived &&
+        this.widgetState.recordingState === "recording"
+      ) {
+        this.showNoAudioWarning = true;
+      }
+    }, NO_AUDIO_WARNING_TIMEOUT_MS);
+
+    // Subscribe to transcription:interim events
+    this.transcriptionInterimUnsubscribe = events.on(
+      "transcription:interim",
+      () => {
+        this.transcriptionReceived = true;
+        if (this.showNoAudioWarning) {
+          this.showNoAudioWarning = false;
+        }
+      }
+    );
+  }
+
+  /**
+   * Clean up no-audio warning tracking when recording stops.
+   */
+  private cleanupNoAudioWarningTracking(): void {
+    if (this.noAudioWarningTimeout !== null) {
+      clearTimeout(this.noAudioWarningTimeout);
+      this.noAudioWarningTimeout = null;
+    }
+    if (this.transcriptionInterimUnsubscribe) {
+      this.transcriptionInterimUnsubscribe();
+      this.transcriptionInterimUnsubscribe = null;
+    }
+    this.showNoAudioWarning = false;
+  }
+
+  /**
+   * Track the result of an action for consecutive failure detection.
+   */
+  private trackActionResult(hasContent: boolean): void {
+    if (hasContent) {
+      this.consecutiveNoAudioActions = 0;
+    } else {
+      this.consecutiveNoAudioActions++;
+    }
+  }
+
+  /**
+   * Handle opening settings from the no-audio warning.
+   */
+  private handleOpenSettingsFromWarning(): void {
+    this.settingsOpen = true;
   }
 
   private supportsSelection(
@@ -1127,11 +1242,13 @@ export class SpeechOSWidget extends LitElement {
             editPreviewText="${this.editSelectedText}"
             errorMessage="${this.widgetState.errorMessage || ""}"
             .commandFeedback="${this.commandFeedback}"
+            ?showNoAudioWarning="${this.showNoAudioWarning}"
             @mic-click="${this.handleMicClick}"
             @stop-recording="${this.handleStopRecording}"
             @cancel-operation="${this.handleCancelOperation}"
             @retry-connection="${this.handleRetryConnection}"
             @close-widget="${this.handleCloseWidget}"
+            @open-settings="${this.handleOpenSettingsFromWarning}"
           ></speechos-mic-button>
         </div>
       </div>

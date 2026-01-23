@@ -230,7 +230,9 @@ export interface SpeechOSEventMap {
   // Core transcription/edit/command events
   // These are emitted by @speechos/core when LiveKit returns data
   // ============================================
-  /** Emitted when transcription is received from the server */
+  /** Emitted when intermediate transcription is received from server (indicates audio is being processed) */
+  "transcription:interim": { transcript: string; isFinal: boolean };
+  /** Emitted when final transcription is received from the server */
   "transcription:complete": { text: string };
   /** Emitted when edited text is received from the server */
   "edit:complete": { text: string; originalText: string };

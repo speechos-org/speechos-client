@@ -264,3 +264,143 @@ describe("Widget positioning", () => {
     });
   });
 });
+
+describe("Widget no-audio warning", () => {
+  let widget: any;
+
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+    state.reset();
+    events.clear();
+
+    // Dynamically import to ensure widget is registered
+    await import("./widget.js");
+
+    widget = document.createElement("speechos-widget");
+    document.body.appendChild(widget);
+    await widget.updateComplete;
+  });
+
+  afterEach(() => {
+    if (widget && widget.parentNode) {
+      widget.parentNode.removeChild(widget);
+    }
+    document.body.innerHTML = "";
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  describe("trackActionResult", () => {
+    it("should increment consecutiveNoAudioActions on empty result", () => {
+      expect(widget.consecutiveNoAudioActions).toBe(0);
+
+      widget.trackActionResult(false);
+      expect(widget.consecutiveNoAudioActions).toBe(1);
+
+      widget.trackActionResult(false);
+      expect(widget.consecutiveNoAudioActions).toBe(2);
+    });
+
+    it("should reset consecutiveNoAudioActions on successful result", () => {
+      widget.consecutiveNoAudioActions = 3;
+
+      widget.trackActionResult(true);
+      expect(widget.consecutiveNoAudioActions).toBe(0);
+    });
+  });
+
+  describe("startNoAudioWarningTracking", () => {
+    it("should reset transcriptionReceived and showNoAudioWarning", () => {
+      widget.transcriptionReceived = true;
+      widget.showNoAudioWarning = true;
+
+      widget.startNoAudioWarningTracking();
+
+      expect(widget.transcriptionReceived).toBe(false);
+      expect(widget.showNoAudioWarning).toBe(false);
+    });
+
+    it("should show warning immediately if consecutive failures >= threshold", () => {
+      widget.consecutiveNoAudioActions = 2; // threshold is 2
+
+      widget.startNoAudioWarningTracking();
+
+      expect(widget.showNoAudioWarning).toBe(true);
+    });
+
+    it("should show warning after 5 second timeout if no transcription received", () => {
+      // Simulate recording state
+      state.setState({ recordingState: "recording" });
+      widget.startNoAudioWarningTracking();
+
+      expect(widget.showNoAudioWarning).toBe(false);
+
+      // Advance time by 5 seconds
+      vi.advanceTimersByTime(5000);
+
+      expect(widget.showNoAudioWarning).toBe(true);
+    });
+
+    it("should not show warning after timeout if transcription was received", () => {
+      state.setState({ recordingState: "recording" });
+      widget.startNoAudioWarningTracking();
+
+      // Simulate receiving transcription
+      widget.transcriptionReceived = true;
+
+      // Advance time by 5 seconds
+      vi.advanceTimersByTime(5000);
+
+      expect(widget.showNoAudioWarning).toBe(false);
+    });
+
+    it("should hide warning when transcription:interim event is received", () => {
+      state.setState({ recordingState: "recording" });
+      widget.startNoAudioWarningTracking();
+
+      // Show warning first
+      widget.showNoAudioWarning = true;
+
+      // Emit transcription:interim event
+      events.emit("transcription:interim", {
+        transcript: "test",
+        isFinal: false,
+      });
+
+      expect(widget.transcriptionReceived).toBe(true);
+      expect(widget.showNoAudioWarning).toBe(false);
+    });
+  });
+
+  describe("cleanupNoAudioWarningTracking", () => {
+    it("should clear timeout and reset showNoAudioWarning", () => {
+      widget.startNoAudioWarningTracking();
+      expect(widget.noAudioWarningTimeout).not.toBeNull();
+
+      widget.cleanupNoAudioWarningTracking();
+
+      expect(widget.noAudioWarningTimeout).toBeNull();
+      expect(widget.showNoAudioWarning).toBe(false);
+    });
+
+    it("should unsubscribe from transcription:interim events", () => {
+      widget.startNoAudioWarningTracking();
+      expect(widget.transcriptionInterimUnsubscribe).not.toBeNull();
+
+      widget.cleanupNoAudioWarningTracking();
+
+      expect(widget.transcriptionInterimUnsubscribe).toBeNull();
+    });
+  });
+
+  describe("handleOpenSettingsFromWarning", () => {
+    it("should set settingsOpen to true", () => {
+      expect(widget.settingsOpen).toBe(false);
+
+      widget.handleOpenSettingsFromWarning();
+
+      expect(widget.settingsOpen).toBe(true);
+    });
+  });
+});

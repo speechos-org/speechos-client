@@ -764,6 +764,60 @@ export class SpeechOSMicButton extends LitElement {
         border-color: rgba(255, 255, 255, 0.5);
       }
 
+      /* No audio warning banner */
+      .no-audio-warning {
+        position: absolute;
+        bottom: 120px; /* Above button and waveform visualizer */
+        left: 50%;
+        transform: translateX(-50%) translateY(8px);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        pointer-events: none;
+        opacity: 0;
+        white-space: nowrap;
+      }
+
+      .no-audio-warning.visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+        pointer-events: auto;
+      }
+
+      .no-audio-warning .warning-icon {
+        flex-shrink: 0;
+        color: white;
+      }
+
+      .no-audio-warning .warning-text {
+        font-size: 13px;
+        font-weight: 500;
+        color: white;
+      }
+
+      .no-audio-warning .settings-link {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+
+      .no-audio-warning .settings-link:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+
       /* Mobile styles - 30% larger */
       @media (max-width: 768px) and (hover: none) {
         .mic-button {
@@ -893,6 +947,21 @@ export class SpeechOSMicButton extends LitElement {
           padding: 8px 14px;
           font-size: 14px;
         }
+
+        .no-audio-warning {
+          padding: 12px 16px;
+          gap: 10px;
+          bottom: 145px; /* Above button and waveform on mobile */
+        }
+
+        .no-audio-warning .warning-text {
+          font-size: 15px;
+        }
+
+        .no-audio-warning .settings-link {
+          padding: 6px 12px;
+          font-size: 14px;
+        }
       }
     `,
   ];
@@ -914,6 +983,9 @@ export class SpeechOSMicButton extends LitElement {
 
   @property({ type: String })
   commandFeedback: "success" | "none" | null = null;
+
+  @property({ type: Boolean })
+  showNoAudioWarning = false;
 
   private handleClick(e: Event): void {
     e.stopPropagation();
@@ -982,6 +1054,18 @@ export class SpeechOSMicButton extends LitElement {
 
     this.dispatchEvent(
       new CustomEvent("retry-connection", {
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleOpenSettings(e: Event): void {
+    e.stopPropagation();
+    e.preventDefault();
+
+    this.dispatchEvent(
+      new CustomEvent("open-settings", {
         bubbles: true,
         composed: true,
       })
@@ -1148,6 +1232,35 @@ export class SpeechOSMicButton extends LitElement {
               </div>
             `
           : ""}
+
+        <div
+          class="no-audio-warning ${this.showNoAudioWarning &&
+          this.recordingState === "recording"
+            ? "visible"
+            : ""}"
+        >
+          <svg
+            class="warning-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+            />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <span class="warning-text">We're not hearing anything</span>
+          <button class="settings-link" @click="${this.handleOpenSettings}">
+            Check Settings
+          </button>
+        </div>
 
         <button
           class="${this.getButtonClass()}"

@@ -1,5 +1,5 @@
 /**
- * Tests for mic button component - command feedback feature
+ * Tests for mic button component - command feedback and no-audio warning features
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -140,6 +140,104 @@ describe("SpeechOSMicButton command feedback", () => {
       const statusLabel = micButton.shadowRoot?.querySelector(".status-label");
       expect(statusLabel?.classList.contains("command-success")).toBe(true);
       expect(statusLabel?.classList.contains("visible")).toBe(true);
+    });
+  });
+});
+
+describe("SpeechOSMicButton no-audio warning", () => {
+  let micButton: HTMLElement;
+
+  beforeEach(async () => {
+    await import("./mic-button.js");
+    micButton = document.createElement("speechos-mic-button");
+    document.body.appendChild(micButton);
+    await (micButton as any).updateComplete;
+  });
+
+  afterEach(() => {
+    if (micButton && micButton.parentNode) {
+      micButton.parentNode.removeChild(micButton);
+    }
+    document.body.innerHTML = "";
+  });
+
+  describe("showNoAudioWarning property", () => {
+    it("should have showNoAudioWarning default to false", () => {
+      expect((micButton as any).showNoAudioWarning).toBe(false);
+    });
+
+    it("should accept true value", async () => {
+      (micButton as any).showNoAudioWarning = true;
+      await (micButton as any).updateComplete;
+
+      expect((micButton as any).showNoAudioWarning).toBe(true);
+    });
+  });
+
+  describe("warning display", () => {
+    it("should show warning banner when showNoAudioWarning is true and recording", async () => {
+      (micButton as any).recordingState = "recording";
+      (micButton as any).showNoAudioWarning = true;
+      await (micButton as any).updateComplete;
+
+      const warning = micButton.shadowRoot?.querySelector(".no-audio-warning");
+      expect(warning?.classList.contains("visible")).toBe(true);
+    });
+
+    it("should not show warning banner when showNoAudioWarning is false", async () => {
+      (micButton as any).recordingState = "recording";
+      (micButton as any).showNoAudioWarning = false;
+      await (micButton as any).updateComplete;
+
+      const warning = micButton.shadowRoot?.querySelector(".no-audio-warning");
+      expect(warning?.classList.contains("visible")).toBe(false);
+    });
+
+    it("should not show warning banner when not recording", async () => {
+      (micButton as any).recordingState = "idle";
+      (micButton as any).showNoAudioWarning = true;
+      await (micButton as any).updateComplete;
+
+      const warning = micButton.shadowRoot?.querySelector(".no-audio-warning");
+      expect(warning?.classList.contains("visible")).toBe(false);
+    });
+
+    it("should contain warning text", async () => {
+      (micButton as any).recordingState = "recording";
+      (micButton as any).showNoAudioWarning = true;
+      await (micButton as any).updateComplete;
+
+      const warningText =
+        micButton.shadowRoot?.querySelector(".warning-text");
+      expect(warningText?.textContent).toContain("not hearing anything");
+    });
+
+    it("should contain settings link button", async () => {
+      (micButton as any).recordingState = "recording";
+      (micButton as any).showNoAudioWarning = true;
+      await (micButton as any).updateComplete;
+
+      const settingsLink =
+        micButton.shadowRoot?.querySelector(".settings-link");
+      expect(settingsLink).not.toBeNull();
+      expect(settingsLink?.textContent).toContain("Settings");
+    });
+  });
+
+  describe("settings link interaction", () => {
+    it("should dispatch open-settings event when settings link is clicked", async () => {
+      (micButton as any).recordingState = "recording";
+      (micButton as any).showNoAudioWarning = true;
+      await (micButton as any).updateComplete;
+
+      const eventListener = vi.fn();
+      micButton.addEventListener("open-settings", eventListener);
+
+      const settingsLink =
+        micButton.shadowRoot?.querySelector(".settings-link") as HTMLElement;
+      settingsLink?.click();
+
+      expect(eventListener).toHaveBeenCalled();
     });
   });
 });

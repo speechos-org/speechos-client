@@ -379,9 +379,13 @@ class WebSocketManager {
     transcript: string;
     is_final: boolean;
   }): void {
-    // Intermediate transcriptions for UI feedback
-    // Currently not exposed to the public API, but could be used for live preview
     const config = getConfig();
+
+    // Emit transcription:interim event for UI feedback (e.g., no-audio warning detection)
+    events.emit('transcription:interim', {
+      transcript: message.transcript,
+      isFinal: message.is_final,
+    });
 
     if (config.debug) {
       console.log(
