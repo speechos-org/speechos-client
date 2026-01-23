@@ -135,6 +135,8 @@ export class SpeechOSWidget extends LitElement {
   @litState()
   private settingsOpen = false;
 
+  private settingsOpenFromWarning = false;
+
   @litState()
   private dictationModalOpen = false;
 
@@ -187,6 +189,7 @@ export class SpeechOSWidget extends LitElement {
     this.modalElement = document.createElement("speechos-settings-modal");
     this.modalElement.addEventListener("modal-close", () => {
       this.settingsOpen = false;
+      this.settingsOpenFromWarning = false;
     });
     document.body.appendChild(this.modalElement);
 
@@ -209,7 +212,16 @@ export class SpeechOSWidget extends LitElement {
     document.body.appendChild(this.editHelpModalElement);
 
     this.stateUnsubscribe = state.subscribe((newState: SpeechOSState) => {
-      if (!newState.isVisible || !newState.isExpanded) {
+      if (!newState.isVisible) {
+        if (getConfig().debug && this.settingsOpen) {
+          console.log("[SpeechOS] Closing settings modal: widget hidden");
+        }
+        this.settingsOpen = false;
+        this.settingsOpenFromWarning = false;
+      } else if (!newState.isExpanded && !this.settingsOpenFromWarning) {
+        if (getConfig().debug && this.settingsOpen) {
+          console.log("[SpeechOS] Closing settings modal: widget collapsed");
+        }
         this.settingsOpen = false;
       }
       // Clear custom position when focused element changes (re-anchor to new element)
@@ -1131,9 +1143,47 @@ export class SpeechOSWidget extends LitElement {
 
   /**
    * Handle opening settings from the no-audio warning.
+   * Stops the current dictation session immediately, then opens settings.
    */
-  private handleOpenSettingsFromWarning(): void {
+  private async handleOpenSettingsFromWarning(): Promise<void> {
+    if (getConfig().debug) {
+      console.log("[SpeechOS] No-audio settings link clicked");
+    }
+
+    // Clean up no-audio warning tracking first
+    this.cleanupNoAudioWarningTracking();
+
+    // Keep settings open even if widget collapses
+    this.settingsOpenFromWarning = true;
+
+    // Stop audio capture and disconnect immediately (don't wait for transcription)
+    // Kick this off before opening settings so audio stops fast, but don't block UI.
+    const disconnectPromise = getBackend().disconnect().catch((error) => {
+      if (getConfig().debug) {
+        console.log("[SpeechOS] Disconnect failed while opening settings", error);
+      }
+    });
+
+    // Update UI state to idle
+    state.cancelRecording();
+
+    // Clear target elements
+    this.dictationTargetElement = null;
+    this.editTargetElement = null;
+    this.dictationCursorStart = null;
+    this.dictationCursorEnd = null;
+    this.editSelectionStart = null;
+    this.editSelectionEnd = null;
+    this.editSelectedText = "";
+
+    // Open settings modal
     this.settingsOpen = true;
+
+    if (getConfig().debug) {
+      console.log("[SpeechOS] Settings modal opened from no-audio warning");
+    }
+
+    await disconnectPromise;
   }
 
   private supportsSelection(

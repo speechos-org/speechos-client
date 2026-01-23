@@ -395,12 +395,90 @@ describe("Widget no-audio warning", () => {
   });
 
   describe("handleOpenSettingsFromWarning", () => {
-    it("should set settingsOpen to true", () => {
+    it("should cancel recording, clean up state, and open settings", async () => {
       expect(widget.settingsOpen).toBe(false);
 
-      widget.handleOpenSettingsFromWarning();
+      state.show();
 
+      await widget.handleOpenSettingsFromWarning();
+
+      // Should clean up no-audio warning tracking
+      expect(widget.showNoAudioWarning).toBe(false);
+      expect(widget.noAudioWarningTimeout).toBeNull();
+
+      // Should open settings
       expect(widget.settingsOpen).toBe(true);
+      expect(widget.settingsOpenFromWarning).toBe(true);
+    });
+
+    it("should keep settings open when widget collapses after warning", async () => {
+      state.show();
+      state.toggleExpanded(); // Expand widget
+
+      await widget.handleOpenSettingsFromWarning();
+      expect(widget.settingsOpen).toBe(true);
+      expect(widget.settingsOpenFromWarning).toBe(true);
+
+      // Simulate widget collapsing (e.g., from cancelRecording)
+      state.setState({ isExpanded: false });
+
+      // Settings should still be open because settingsOpenFromWarning is true
+      expect(widget.settingsOpen).toBe(true);
+    });
+
+    it("should close settings when widget is hidden (even if opened from warning)", async () => {
+      state.show();
+
+      await widget.handleOpenSettingsFromWarning();
+      expect(widget.settingsOpen).toBe(true);
+      expect(widget.settingsOpenFromWarning).toBe(true);
+
+      // Hide the widget
+      state.hide();
+
+      // Settings should close and flag should reset
+      expect(widget.settingsOpen).toBe(false);
+      expect(widget.settingsOpenFromWarning).toBe(false);
+    });
+
+    it("should close settings on collapse when NOT opened from warning", () => {
+      state.show();
+      state.toggleExpanded(); // Expand widget
+
+      // Open settings normally (not from warning)
+      widget.settingsOpen = true;
+      widget.settingsOpenFromWarning = false;
+
+      // Collapse the widget
+      state.setState({ isExpanded: false });
+
+      // Settings should close because settingsOpenFromWarning is false
+      expect(widget.settingsOpen).toBe(false);
+    });
+
+    it("should clear target elements when opening settings from warning", async () => {
+      state.show();
+
+      // Set up some target elements
+      const input = document.createElement("input");
+      widget.dictationTargetElement = input;
+      widget.editTargetElement = input;
+      widget.dictationCursorStart = 5;
+      widget.dictationCursorEnd = 10;
+      widget.editSelectionStart = 0;
+      widget.editSelectionEnd = 5;
+      widget.editSelectedText = "hello";
+
+      await widget.handleOpenSettingsFromWarning();
+
+      // All target elements should be cleared
+      expect(widget.dictationTargetElement).toBeNull();
+      expect(widget.editTargetElement).toBeNull();
+      expect(widget.dictationCursorStart).toBeNull();
+      expect(widget.dictationCursorEnd).toBeNull();
+      expect(widget.editSelectionStart).toBeNull();
+      expect(widget.editSelectionEnd).toBeNull();
+      expect(widget.editSelectedText).toBe("");
     });
   });
 });
