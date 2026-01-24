@@ -1,5 +1,11 @@
 # @speechos/core
 
+## 0.2.7
+
+### Patch Changes
+
+- Fix bug with dictation closing widget
+
 ## 0.2.6
 
 ### Patch Changes

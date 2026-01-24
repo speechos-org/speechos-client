@@ -1,5 +1,14 @@
 # @speechos/react
 
+## 1.0.7
+
+### Patch Changes
+
+- Fix bug with dictation closing widget
+- Updated dependencies
+  - @speechos/client@0.2.8
+  - @speechos/core@0.2.7
+
 ## 1.0.6
 
 ### Patch Changes
