@@ -231,7 +231,7 @@ class WebSocketManager {
       const isConnectionBlocked = this.ws?.readyState === WebSocket.CLOSED;
       const errorCode = isConnectionBlocked ? 'connection_blocked' : 'websocket_error';
       const errorMessage = isConnectionBlocked
-        ? 'This website blocks voice connections. SpeechOS is not available here.'
+        ? "This site's CSP blocks the extension. Try embedded mode instead."
         : 'WebSocket connection error';
 
       console.error('[SpeechOS] WebSocket error:', event, { isConnectionBlocked });

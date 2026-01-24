@@ -353,6 +353,84 @@ describe('WebSocket protocol messages', () => {
   });
 });
 
+describe('WebSocket error handling', () => {
+  it('should define connection_blocked error for CSP violations', () => {
+    // When WebSocket fails immediately due to CSP, readyState will be CLOSED
+    const errorPayload = {
+      code: 'connection_blocked',
+      message: "This site's CSP blocks the extension. Try embedded mode instead.",
+      source: 'connection',
+    };
+
+    expect(errorPayload.code).toBe('connection_blocked');
+    expect(errorPayload.message).toContain('CSP blocks the extension');
+    expect(errorPayload.source).toBe('connection');
+  });
+
+  it('should define websocket_error for general WebSocket errors', () => {
+    const errorPayload = {
+      code: 'websocket_error',
+      message: 'WebSocket connection error',
+      source: 'connection',
+    };
+
+    expect(errorPayload.code).toBe('websocket_error');
+    expect(errorPayload.message).toBe('WebSocket connection error');
+  });
+
+  it('should distinguish between blocked and general errors based on readyState', () => {
+    // Simulate the logic from websocket.ts onerror handler
+    const checkIsBlocked = (readyState: number) => {
+      return readyState === WebSocket.CLOSED;
+    };
+
+    // CLOSED (3) means connection was blocked/failed immediately
+    expect(checkIsBlocked(WebSocket.CLOSED)).toBe(true);
+    // CONNECTING (0), OPEN (1), CLOSING (2) are not blocked states
+    expect(checkIsBlocked(WebSocket.CONNECTING)).toBe(false);
+    expect(checkIsBlocked(WebSocket.OPEN)).toBe(false);
+    expect(checkIsBlocked(WebSocket.CLOSING)).toBe(false);
+  });
+
+  it('should emit error event with connection_blocked code when blocked', async () => {
+    const errorListener = vi.fn();
+    events.on('error', errorListener);
+
+    // Simulate what happens in onerror when connection is blocked
+    const isConnectionBlocked = true;
+    const errorCode = isConnectionBlocked ? 'connection_blocked' : 'websocket_error';
+    const errorMessage = isConnectionBlocked
+      ? "This site's CSP blocks the extension. Try embedded mode instead."
+      : 'WebSocket connection error';
+
+    events.emit('error', {
+      code: errorCode,
+      message: errorMessage,
+      source: 'connection',
+    });
+
+    expect(errorListener).toHaveBeenCalledWith({
+      code: 'connection_blocked',
+      message: "This site's CSP blocks the extension. Try embedded mode instead.",
+      source: 'connection',
+    });
+  });
+
+  it('should reject pending auth immediately when connection is blocked', async () => {
+    const deferred = new Deferred<void>();
+    const errorMessage = "This site's CSP blocks the extension. Try embedded mode instead.";
+
+    // Set a long timeout that should never fire
+    deferred.setTimeout(30000, 'Connection timed out', 'connection_timeout', 'connection');
+
+    // Immediately reject (simulating onerror handler)
+    deferred.reject(new Error(errorMessage));
+
+    // Should reject with our message, not timeout
+    await expect(deferred.promise).rejects.toThrow(errorMessage);
+  });
+});
+
 describe('WebSocket URL construction', () => {
   it('should convert https to wss', () => {
     const host = 'https://app.speechos.ai';

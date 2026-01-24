@@ -277,3 +277,129 @@ describe("SpeechOSMicButton no-audio warning", () => {
     });
   });
 });
+
+describe("SpeechOSMicButton error display", () => {
+  let micButton: HTMLElement;
+
+  beforeEach(async () => {
+    await import("./mic-button.js");
+    micButton = document.createElement("speechos-mic-button");
+    document.body.appendChild(micButton);
+    await (micButton as any).updateComplete;
+  });
+
+  afterEach(() => {
+    if (micButton && micButton.parentNode) {
+      micButton.parentNode.removeChild(micButton);
+    }
+    document.body.innerHTML = "";
+  });
+
+  describe("showRetryButton property", () => {
+    it("should have showRetryButton default to true", () => {
+      expect((micButton as any).showRetryButton).toBe(true);
+    });
+
+    it("should accept false value", async () => {
+      (micButton as any).showRetryButton = false;
+      await (micButton as any).updateComplete;
+
+      expect((micButton as any).showRetryButton).toBe(false);
+    });
+  });
+
+  describe("error message display", () => {
+    it("should show error message when in error state with message", async () => {
+      (micButton as any).recordingState = "error";
+      (micButton as any).errorMessage = "Connection error";
+      await (micButton as any).updateComplete;
+
+      const errorMessage = micButton.shadowRoot?.querySelector(".error-message");
+      expect(errorMessage?.classList.contains("visible")).toBe(true);
+      expect(errorMessage?.textContent).toContain("Connection error");
+    });
+
+    it("should not show error message when not in error state", async () => {
+      (micButton as any).recordingState = "idle";
+      (micButton as any).errorMessage = "Some error";
+      await (micButton as any).updateComplete;
+
+      const errorMessage = micButton.shadowRoot?.querySelector(".error-message");
+      expect(errorMessage).toBeNull();
+    });
+
+    it("should not show error message when no error message is set", async () => {
+      (micButton as any).recordingState = "error";
+      (micButton as any).errorMessage = null;
+      await (micButton as any).updateComplete;
+
+      const errorMessage = micButton.shadowRoot?.querySelector(".error-message");
+      expect(errorMessage).toBeNull();
+    });
+  });
+
+  describe("retry button visibility", () => {
+    it("should show retry button when showRetryButton is true", async () => {
+      (micButton as any).recordingState = "error";
+      (micButton as any).errorMessage = "Connection error";
+      (micButton as any).showRetryButton = true;
+      await (micButton as any).updateComplete;
+
+      const retryButton = micButton.shadowRoot?.querySelector(".retry-button");
+      expect(retryButton).not.toBeNull();
+      expect(retryButton?.textContent).toContain("Retry");
+    });
+
+    it("should hide retry button when showRetryButton is false", async () => {
+      (micButton as any).recordingState = "error";
+      (micButton as any).errorMessage = "This site's CSP blocks the extension.";
+      (micButton as any).showRetryButton = false;
+      await (micButton as any).updateComplete;
+
+      const retryButton = micButton.shadowRoot?.querySelector(".retry-button");
+      expect(retryButton).toBeNull();
+    });
+
+    it("should dispatch retry-connection event when retry button is clicked", async () => {
+      (micButton as any).recordingState = "error";
+      (micButton as any).errorMessage = "Connection error";
+      (micButton as any).showRetryButton = true;
+      await (micButton as any).updateComplete;
+
+      const eventListener = vi.fn();
+      micButton.addEventListener("retry-connection", eventListener);
+
+      const retryButton = micButton.shadowRoot?.querySelector(".retry-button") as HTMLElement;
+      retryButton?.click();
+
+      expect(eventListener).toHaveBeenCalled();
+    });
+  });
+
+  describe("CSP blocked error scenarios", () => {
+    it("should display connection blocked message without retry button", async () => {
+      (micButton as any).recordingState = "error";
+      (micButton as any).errorMessage = "This site's CSP blocks the extension. Try embedded mode instead.";
+      (micButton as any).showRetryButton = false;
+      await (micButton as any).updateComplete;
+
+      const errorMessage = micButton.shadowRoot?.querySelector(".error-message");
+      expect(errorMessage?.classList.contains("visible")).toBe(true);
+      expect(errorMessage?.textContent).toContain("CSP blocks the extension");
+
+      const retryButton = micButton.shadowRoot?.querySelector(".retry-button");
+      expect(retryButton).toBeNull();
+    });
+
+    it("should render error message with visible class", async () => {
+      (micButton as any).recordingState = "error";
+      (micButton as any).errorMessage = "This site's CSP blocks the extension.";
+      (micButton as any).showRetryButton = false;
+      await (micButton as any).updateComplete;
+
+      const errorMessage = micButton.shadowRoot?.querySelector(".error-message") as HTMLElement;
+      expect(errorMessage).not.toBeNull();
+      expect(errorMessage?.classList.contains("visible")).toBe(true);
+    });
+  });
+});
