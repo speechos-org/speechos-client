@@ -42,6 +42,14 @@ export interface SpeechOSCoreConfig {
 
   /** Enable debug logging */
   debug?: boolean;
+
+  /**
+   * Custom WebSocket factory for creating connections.
+   * Used by the Chrome extension to route WebSocket traffic through the
+   * service worker, bypassing page CSP restrictions.
+   * If not provided, uses the native WebSocket constructor.
+   */
+  webSocketFactory?: WebSocketFactory;
 }
 
 /**
@@ -284,3 +292,44 @@ export type StateChangeCallback = (
  * Unsubscribe function returned by event listeners
  */
 export type UnsubscribeFn = () => void;
+
+// ============================================
+// WebSocket abstraction for extension support
+// ============================================
+
+/**
+ * Minimal WebSocket-like interface used by the SDK.
+ * This allows the extension to provide a proxy WebSocket that routes
+ * traffic through the service worker to bypass page CSP restrictions.
+ */
+export interface WebSocketLike {
+  /** Current connection state (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED) */
+  readonly readyState: number;
+
+  /** Number of bytes of data queued for transmission */
+  readonly bufferedAmount: number;
+
+  /** Send data over the connection */
+  send(data: string | ArrayBuffer | Blob): void;
+
+  /** Close the connection */
+  close(code?: number, reason?: string): void;
+
+  /** Called when connection opens */
+  onopen: ((event: Event) => void) | null;
+
+  /** Called when a message is received */
+  onmessage: ((event: MessageEvent) => void) | null;
+
+  /** Called when an error occurs */
+  onerror: ((event: Event) => void) | null;
+
+  /** Called when connection closes */
+  onclose: ((event: CloseEvent) => void) | null;
+}
+
+/**
+ * Factory function type for creating WebSocket-like connections.
+ * Used by extensions to provide a proxy WebSocket that bypasses page CSP.
+ */
+export type WebSocketFactory = (url: string) => WebSocketLike;

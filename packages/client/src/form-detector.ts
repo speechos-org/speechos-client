@@ -86,6 +86,10 @@ export class FormDetector implements FormDetectorInterface {
       const target = event.target as Element | null;
 
       if (isFormField(target)) {
+        console.log("[SpeechOS] FormDetector: focus on form field", {
+          element: target,
+          tagName: target?.tagName,
+        });
         state.setFocusedElement(target);
         state.show();
         events.emit("form:focus", { element: target });

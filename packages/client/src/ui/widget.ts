@@ -567,11 +567,21 @@ export class SpeechOSWidget extends LitElement {
         this.trackActionResult(!!transcription);
 
         if (transcription) {
+          if (getConfig().debug) {
+            console.log("[SpeechOS] Transcription received:", {
+              transcription,
+              dictationTargetElement: this.dictationTargetElement,
+              tagName: this.dictationTargetElement?.tagName,
+            });
+          }
           // Check if we have a target element to insert into
           if (this.dictationTargetElement) {
             this.insertTranscription(transcription);
           } else {
             // No target element - show dictation output modal
+            if (getConfig().debug) {
+              console.log("[SpeechOS] No target element, showing dictation modal");
+            }
             this.dictationModalText = transcription;
             this.dictationModalOpen = true;
           }
@@ -738,17 +748,8 @@ export class SpeechOSWidget extends LitElement {
     } else if (target.isContentEditable) {
       target.focus();
       state.setFocusedElement(target);
-      const textNode = document.createTextNode(text);
-      target.appendChild(textNode);
-      const selection = window.getSelection();
-      if (selection) {
-        const range = document.createRange();
-        range.selectNodeContents(textNode);
-        range.collapse(false);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-      target.dispatchEvent(new Event("input", { bubbles: true }));
+      // Use execCommand for compatibility with rich text editors
+      document.execCommand("insertText", false, text);
     }
     events.emit("transcription:inserted", { text, element: target });
     this.dictationTargetElement = null;
@@ -798,6 +799,15 @@ export class SpeechOSWidget extends LitElement {
     this.dictationTargetElement = this.widgetState.focusedElement;
     this.dictationCursorStart = null;
     this.dictationCursorEnd = null;
+
+    if (getConfig().debug) {
+      console.log("[SpeechOS] startDictation:", {
+        focusedElement: this.widgetState.focusedElement,
+        dictationTargetElement: this.dictationTargetElement,
+        tagName: this.dictationTargetElement?.tagName,
+      });
+    }
+
     if (this.dictationTargetElement) {
       const tagName = this.dictationTargetElement.tagName.toLowerCase();
       if (tagName === "input" || tagName === "textarea") {
@@ -858,6 +868,15 @@ export class SpeechOSWidget extends LitElement {
     this.editSelectionStart = null;
     this.editSelectionEnd = null;
     this.editSelectedText = "";
+
+    if (getConfig().debug) {
+      console.log("[SpeechOS] startEdit:", {
+        focusedElement: this.widgetState.focusedElement,
+        editTargetElement: this.editTargetElement,
+        tagName: this.editTargetElement?.tagName,
+      });
+    }
+
     if (this.editTargetElement) {
       const tagName = this.editTargetElement.tagName.toLowerCase();
       if (tagName === "input" || tagName === "textarea") {
@@ -1276,11 +1295,14 @@ export class SpeechOSWidget extends LitElement {
         this.editSelectionEnd !== null &&
         this.editSelectionStart !== this.editSelectionEnd;
       if (!hasSelection) {
+        // Select all content in the target element
         const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(target);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
+        if (selection) {
+          const range = document.createRange();
+          range.selectNodeContents(target);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
       }
       document.execCommand("insertText", false, editedText);
     }

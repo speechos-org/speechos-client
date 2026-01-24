@@ -42,6 +42,8 @@ export type {
   CommandResult,
   SessionSettings,
   VoiceSessionOptions,
+  WebSocketLike,
+  WebSocketFactory,
 } from "./types.js";
 
 // Version

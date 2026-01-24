@@ -2,7 +2,7 @@
  * Configuration management for SpeechOS Core SDK
  */
 
-import type { SpeechOSCoreConfig } from "./types.js";
+import type { SpeechOSCoreConfig, WebSocketFactory } from "./types.js";
 
 /**
  * Default host - can be overridden by SPEECHOS_HOST env var at build time
@@ -19,6 +19,8 @@ interface ResolvedConfig {
   userId: string;
   host: string;
   debug: boolean;
+  /** Custom WebSocket factory (undefined means use native WebSocket) */
+  webSocketFactory: WebSocketFactory | undefined;
 }
 
 /**
@@ -29,6 +31,7 @@ const defaultConfig: ResolvedConfig = {
   userId: "",
   host: DEFAULT_HOST,
   debug: false,
+  webSocketFactory: undefined,
 };
 
 /**
@@ -49,6 +52,7 @@ export function validateConfig(userConfig: SpeechOSCoreConfig): ResolvedConfig {
     userId: userConfig.userId ?? defaultConfig.userId,
     host: userConfig.host ?? defaultConfig.host,
     debug: userConfig.debug ?? defaultConfig.debug,
+    webSocketFactory: userConfig.webSocketFactory ?? defaultConfig.webSocketFactory,
   };
 }
 

@@ -14,6 +14,7 @@ import type {
   SpeechOSAction,
   VoiceSessionOptions,
   SessionSettings,
+  WebSocketLike,
 } from './types.js';
 import { getConfig, getAnonymousId } from './config.js';
 import { events } from './events.js';
@@ -31,6 +32,12 @@ const MESSAGE_TYPE_EDITED_TEXT = 'edited_text';
 const MESSAGE_TYPE_EXECUTE_COMMAND = 'execute_command';
 const MESSAGE_TYPE_COMMAND_RESULT = 'command_result';
 const MESSAGE_TYPE_ERROR = 'error';
+
+// WebSocket readyState constants (for use with WebSocketLike interface)
+const WS_CONNECTING = 0;
+const WS_OPEN = 1;
+const WS_CLOSING = 2;
+const WS_CLOSED = 3;
 
 /**
  * Response timeout in milliseconds.
@@ -110,7 +117,7 @@ const BUFFER_CHECK_INTERVAL_MS = 50;
  * WebSocket connection manager for voice sessions.
  */
 class WebSocketManager {
-  private ws: WebSocket | null = null;
+  private ws: WebSocketLike | null = null;
   private audioCapture: AudioCapture | null = null;
   private sessionId: string | null = null;
 
@@ -211,7 +218,9 @@ class WebSocketManager {
       'connection'
     );
 
-    this.ws = new WebSocket(wsUrl);
+    // Use custom factory if provided (for extension CSP bypass), otherwise native WebSocket
+    const factory = config.webSocketFactory ?? ((url: string) => new WebSocket(url));
+    this.ws = factory(wsUrl);
 
     // Set up event handlers
     this.ws.onopen = () => {
@@ -228,7 +237,7 @@ class WebSocketManager {
     this.ws.onerror = (event) => {
       // Check if connection was blocked (e.g., by CSP) - readyState will be CLOSED
       // without ever successfully connecting
-      const isConnectionBlocked = this.ws?.readyState === WebSocket.CLOSED;
+      const isConnectionBlocked = this.ws?.readyState === WS_CLOSED;
       const errorCode = isConnectionBlocked ? 'connection_blocked' : 'websocket_error';
       const errorMessage = isConnectionBlocked
         ? "This site's CSP blocks the extension. Try embedded mode instead."
@@ -319,7 +328,7 @@ class WebSocketManager {
    * Actually send the audio chunk (async operation).
    */
   private async doSendAudioChunk(chunk: Blob): Promise<void> {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    if (this.ws && this.ws.readyState === WS_OPEN) {
       const arrayBuffer = await chunk.arrayBuffer();
       this.ws.send(arrayBuffer);
     }
@@ -643,7 +652,7 @@ class WebSocketManager {
    * the transcript. Uses the same pattern as LiveKit's ReadableStream approach.
    */
   private async waitForBufferDrain(): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+    if (!this.ws || this.ws.readyState !== WS_OPEN) {
       return;
     }
 
@@ -669,7 +678,7 @@ class WebSocketManager {
    * Send a JSON message over the WebSocket.
    */
   private sendMessage(message: object): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    if (this.ws && this.ws.readyState === WS_OPEN) {
       this.ws.send(JSON.stringify(message));
     }
   }
@@ -730,7 +739,7 @@ class WebSocketManager {
    * Check if connected to WebSocket.
    */
   isConnected(): boolean {
-    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+    return this.ws !== null && this.ws.readyState === WS_OPEN;
   }
 
   /**

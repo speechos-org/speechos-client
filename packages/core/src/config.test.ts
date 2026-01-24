@@ -124,4 +124,61 @@ describe("config", () => {
       expect(getConfig().userId).toBe("");
     });
   });
+
+  describe("webSocketFactory", () => {
+    it("should default to undefined when not provided", () => {
+      setConfig({ apiKey: "test-key" });
+
+      const config = getConfig();
+      expect(config.webSocketFactory).toBeUndefined();
+    });
+
+    it("should store webSocketFactory when provided", () => {
+      const mockFactory = vi.fn();
+      setConfig({
+        apiKey: "test-key",
+        webSocketFactory: mockFactory,
+      });
+
+      const config = getConfig();
+      expect(config.webSocketFactory).toBe(mockFactory);
+    });
+
+    it("should reset webSocketFactory to undefined on resetConfig", () => {
+      const mockFactory = vi.fn();
+      setConfig({
+        apiKey: "test-key",
+        webSocketFactory: mockFactory,
+      });
+
+      resetConfig();
+      const config = getConfig();
+      expect(config.webSocketFactory).toBeUndefined();
+    });
+
+    it("should validate config with webSocketFactory", () => {
+      const mockFactory = vi.fn();
+      const result = validateConfig({
+        apiKey: "test-key",
+        webSocketFactory: mockFactory,
+      });
+
+      expect(result.webSocketFactory).toBe(mockFactory);
+      expect(result.apiKey).toBe("test-key");
+    });
+
+    it("should allow webSocketFactory without other optional fields", () => {
+      const mockFactory = vi.fn();
+      setConfig({
+        apiKey: "test-key",
+        webSocketFactory: mockFactory,
+      });
+
+      const config = getConfig();
+      expect(config.webSocketFactory).toBe(mockFactory);
+      expect(config.host).toBe(DEFAULT_HOST);
+      expect(config.userId).toBe("");
+      expect(config.debug).toBe(false);
+    });
+  });
 });

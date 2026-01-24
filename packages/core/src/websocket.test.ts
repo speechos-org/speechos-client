@@ -5,9 +5,10 @@
  * WebSocketManager integration tests are more complex due to browser API mocking.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Deferred } from './websocket.js';
+import { Deferred, websocket } from './websocket.js';
 import { events } from './events.js';
-import { resetConfig } from './config.js';
+import { setConfig, resetConfig } from './config.js';
+import type { WebSocketLike } from './types.js';
 
 describe('WebSocket Deferred', () => {
   beforeEach(() => {
@@ -451,5 +452,331 @@ describe('WebSocket URL construction', () => {
     const wsUrl = host.replace(/^http/, 'ws') + '/ws/voice/';
 
     expect(wsUrl).toBe('wss://app.speechos.ai/ws/voice/');
+  });
+});
+
+describe('WebSocket factory', () => {
+  /**
+   * Helper to create a mock WebSocketLike object
+   */
+  function createMockWebSocket(): WebSocketLike & {
+    triggerOpen: () => void;
+    triggerMessage: (data: string) => void;
+    triggerError: () => void;
+    triggerClose: () => void;
+  } {
+    const ws: WebSocketLike & {
+      triggerOpen: () => void;
+      triggerMessage: (data: string) => void;
+      triggerError: () => void;
+      triggerClose: () => void;
+    } = {
+      readyState: 0, // CONNECTING
+      bufferedAmount: 0,
+      send: vi.fn(),
+      close: vi.fn(),
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      onclose: null,
+      triggerOpen() {
+        (this as { readyState: number }).readyState = 1; // OPEN
+        if (this.onopen) this.onopen(new Event('open'));
+      },
+      triggerMessage(data: string) {
+        if (this.onmessage) this.onmessage(new MessageEvent('message', { data }));
+      },
+      triggerError() {
+        (this as { readyState: number }).readyState = 3; // CLOSED
+        if (this.onerror) this.onerror(new Event('error'));
+      },
+      triggerClose() {
+        (this as { readyState: number }).readyState = 3; // CLOSED
+        if (this.onclose) this.onclose(new CloseEvent('close'));
+      },
+    };
+    return ws;
+  }
+
+  /**
+   * Helper to set up browser API mocks needed for WebSocket tests
+   */
+  function setupBrowserMocks() {
+    // Mock navigator with all required properties
+    vi.stubGlobal('navigator', {
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0.0.0 Safari/537.36',
+      vendor: 'Google Inc.',
+      mediaDevices: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: vi.fn() }],
+        }),
+      },
+    });
+
+    // Mock MediaRecorder - returns a fresh instance each time
+    const MockMediaRecorder = vi.fn().mockImplementation(function(this: Record<string, unknown>) {
+      this.start = vi.fn();
+      this.stop = vi.fn().mockImplementation(() => {
+        this.state = 'inactive';
+        if (typeof this.onstop === 'function') this.onstop();
+      });
+      this.ondataavailable = null;
+      this.onerror = null;
+      this.onstop = null;
+      this.state = 'inactive';
+      this.requestData = vi.fn();
+      return this;
+    });
+    MockMediaRecorder.isTypeSupported = vi.fn().mockReturnValue(true);
+    vi.stubGlobal('MediaRecorder', MockMediaRecorder);
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    resetConfig();
+    events.clear();
+    setupBrowserMocks();
+  });
+
+  afterEach(() => {
+    // Use real timers first so cleanup doesn't hang
+    vi.useRealTimers();
+    events.clear();
+    // Reset config but don't try to disconnect - it causes unhandled rejections
+    // Each test is responsible for proper cleanup of its own session
+    resetConfig();
+    vi.unstubAllGlobals();
+  });
+
+  describe('factory invocation', () => {
+    it('should call webSocketFactory when provided in config', async () => {
+      const mockWs = createMockWebSocket();
+      const mockFactory = vi.fn().mockReturnValue(mockWs);
+
+      setConfig({
+        apiKey: 'test-key',
+        host: 'https://test.speechos.ai',
+        webSocketFactory: mockFactory,
+      });
+
+      // Start voice session (this will create the WebSocket)
+      const sessionPromise = websocket.startVoiceSession();
+
+      // Allow async operations to run
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Factory should have been called with the correct URL
+      expect(mockFactory).toHaveBeenCalledTimes(1);
+      expect(mockFactory).toHaveBeenCalledWith('wss://test.speechos.ai/ws/voice/');
+
+      // Simulate successful connection
+      mockWs.triggerOpen();
+
+      // Simulate ready message from server
+      mockWs.triggerMessage(JSON.stringify({
+        type: 'ready',
+        session_id: 'test-session-123',
+      }));
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Session should complete successfully
+      await sessionPromise;
+
+      // Verify the mock WebSocket's send was called (for auth message)
+      expect(mockWs.send).toHaveBeenCalled();
+      const authCall = (mockWs.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const authMessage = JSON.parse(authCall);
+      expect(authMessage.type).toBe('auth');
+      expect(authMessage.api_key).toBe('test-key');
+    });
+
+    it('should pass correct URL to factory based on host config', async () => {
+      const mockWs = createMockWebSocket();
+      const mockFactory = vi.fn().mockReturnValue(mockWs);
+
+      // Test with localhost (http -> ws)
+      setConfig({
+        apiKey: 'test-key',
+        host: 'http://localhost:8000',
+        webSocketFactory: mockFactory,
+      });
+
+      websocket.startVoiceSession();
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(mockFactory).toHaveBeenCalledWith('ws://localhost:8000/ws/voice/');
+    });
+
+    it('should handle factory-created socket events correctly', async () => {
+      const mockWs = createMockWebSocket();
+      const mockFactory = vi.fn().mockReturnValue(mockWs);
+      const errorListener = vi.fn();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      events.on('error', errorListener);
+
+      setConfig({
+        apiKey: 'test-key',
+        host: 'https://test.speechos.ai',
+        webSocketFactory: mockFactory,
+      });
+
+      const sessionPromise = websocket.startVoiceSession();
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Set up the rejection expectation BEFORE triggering error to catch it properly
+      const rejectPromise = expect(sessionPromise).rejects.toThrow("This site's CSP blocks the extension");
+
+      // Simulate connection error (CSP blocked)
+      mockWs.triggerError();
+
+      // Wait for the rejection to propagate
+      await rejectPromise;
+
+      // Should have emitted error event
+      expect(errorListener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 'connection_blocked',
+          source: 'connection',
+        })
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should use native WebSocket when factory is not provided', async () => {
+      const nativeWebSocketSpy = vi.fn();
+      vi.stubGlobal('WebSocket', nativeWebSocketSpy);
+
+      setConfig({
+        apiKey: 'test-key',
+        host: 'https://test.speechos.ai',
+        // No webSocketFactory provided
+      });
+
+      // This will fail because our mock WebSocket doesn't have the right interface,
+      // but we just want to verify native WebSocket was called
+      try {
+        websocket.startVoiceSession();
+        await vi.advanceTimersByTimeAsync(100);
+      } catch {
+        // Expected to fail due to mock limitations
+      }
+
+      // Native WebSocket should have been called
+      expect(nativeWebSocketSpy).toHaveBeenCalledWith('wss://test.speechos.ai/ws/voice/');
+    });
+  });
+
+  describe('message handling with factory socket', () => {
+    it('should send auth message after connection opens', async () => {
+      const mockWs = createMockWebSocket();
+      const mockFactory = vi.fn().mockReturnValue(mockWs);
+
+      setConfig({
+        apiKey: 'test-api-key',
+        userId: 'test-user-id',
+        host: 'https://test.speechos.ai',
+        webSocketFactory: mockFactory,
+      });
+
+      websocket.startVoiceSession({
+        action: 'dictate',
+        settings: {
+          inputLanguageCode: 'en-US',
+          outputLanguageCode: 'en-US',
+          smartFormat: true,
+        },
+      });
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Trigger connection open
+      mockWs.triggerOpen();
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Verify auth message was sent
+      expect(mockWs.send).toHaveBeenCalled();
+      const authCall = (mockWs.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const authMessage = JSON.parse(authCall);
+
+      expect(authMessage.type).toBe('auth');
+      expect(authMessage.api_key).toBe('test-api-key');
+      expect(authMessage.user_id).toBe('test-user-id');
+      expect(authMessage.action).toBe('dictate');
+      expect(authMessage.input_language).toBe('en-US');
+      expect(authMessage.output_language).toBe('en-US');
+      expect(authMessage.smart_format).toBe(true);
+    });
+
+    it('should handle transcript response from factory socket', async () => {
+      const mockWs = createMockWebSocket();
+      const mockFactory = vi.fn().mockReturnValue(mockWs);
+      const transcriptListener = vi.fn();
+
+      events.on('transcription:complete', transcriptListener);
+
+      setConfig({
+        apiKey: 'test-key',
+        host: 'https://test.speechos.ai',
+        webSocketFactory: mockFactory,
+      });
+
+      const sessionPromise = websocket.startVoiceSession();
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Complete connection
+      mockWs.triggerOpen();
+      mockWs.triggerMessage(JSON.stringify({ type: 'ready', session_id: 'test-123' }));
+      await vi.advanceTimersByTimeAsync(100);
+      await sessionPromise;
+
+      // Now stop and request transcript
+      const stopPromise = websocket.stopVoiceSession();
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Server sends transcript
+      mockWs.triggerMessage(JSON.stringify({
+        type: 'transcript',
+        transcript: 'Hello world',
+      }));
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      const transcript = await stopPromise;
+
+      expect(transcript).toBe('Hello world');
+      expect(transcriptListener).toHaveBeenCalledWith({ text: 'Hello world' });
+    });
+  });
+
+  describe('disconnect with factory socket', () => {
+    it('should call close on factory-created socket', async () => {
+      const mockWs = createMockWebSocket();
+      const mockFactory = vi.fn().mockReturnValue(mockWs);
+
+      setConfig({
+        apiKey: 'test-key',
+        host: 'https://test.speechos.ai',
+        webSocketFactory: mockFactory,
+      });
+
+      const sessionPromise = websocket.startVoiceSession();
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Complete connection
+      mockWs.triggerOpen();
+      mockWs.triggerMessage(JSON.stringify({ type: 'ready', session_id: 'test-123' }));
+      await vi.advanceTimersByTimeAsync(100);
+      await sessionPromise;
+
+      // Disconnect
+      await websocket.disconnect();
+
+      // Close should have been called on the mock socket
+      expect(mockWs.close).toHaveBeenCalled();
+    });
   });
 });
