@@ -744,6 +744,8 @@ export class SpeechOSWidget extends LitElement {
 
     if (tagName === "input" || tagName === "textarea") {
       const inputEl = target as HTMLInputElement | HTMLTextAreaElement;
+      // Ensure DOM focus is on the input before inserting
+      inputEl.focus();
       // Restore cursor position before inserting
       const start = this.dictationCursorStart ?? inputEl.value.length;
       const end = this.dictationCursorEnd ?? inputEl.value.length;
@@ -1126,9 +1128,6 @@ export class SpeechOSWidget extends LitElement {
 
       state.completeRecording();
 
-      // Keep widget visible but collapsed (just mic button, no action bubbles)
-      state.setState({ isExpanded: false });
-
       // Show command feedback
       this.showActionFeedback(result ? "command-success" : "command-none");
 
@@ -1318,6 +1317,9 @@ export class SpeechOSWidget extends LitElement {
     if (tagName === "input" || tagName === "textarea") {
       const inputEl = target as HTMLInputElement | HTMLTextAreaElement;
       originalContent = inputEl.value;
+
+      // Ensure DOM focus is on the input before editing
+      inputEl.focus();
 
       // Restore the original selection/cursor position
       const selectionStart = this.editSelectionStart ?? 0;

@@ -89,6 +89,23 @@ describe("StateManager", () => {
       expect(state.getState().recordingState).toBe("idle");
       expect(state.getState().isConnected).toBe(false);
       expect(state.getState().isMicEnabled).toBe(false);
+      expect(state.getState().isExpanded).toBe(false);
+    });
+
+    it("should collapse expanded widget when completing recording", () => {
+      // Start with expanded widget
+      state.show();
+      state.setState({ isExpanded: true });
+      expect(state.getState().isExpanded).toBe(true);
+
+      // Start and complete a recording
+      state.startRecording();
+      state.setRecordingState("recording");
+      state.completeRecording();
+
+      // Widget should be collapsed but still visible
+      expect(state.getState().isExpanded).toBe(false);
+      expect(state.getState().isVisible).toBe(true);
     });
 
     it("should allow canceling recording", () => {

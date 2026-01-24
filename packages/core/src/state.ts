@@ -189,7 +189,8 @@ class StateManager {
   }
 
   /**
-   * Complete the recording flow and return to idle
+   * Complete the recording flow and return to idle.
+   * Keeps widget visible but collapsed (just mic button, no action bubbles).
    */
   completeRecording(): void {
     this.setState({
@@ -197,6 +198,7 @@ class StateManager {
       activeAction: null,
       isConnected: false,
       isMicEnabled: false,
+      isExpanded: false,
     });
   }
 
