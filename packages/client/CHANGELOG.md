@@ -1,5 +1,18 @@
 # @speechos/client
 
+## 0.2.7
+
+### Patch Changes
+
+- Add support for swappable WebSocket implementations and improve error handling
+
+  - Added `WebSocketFactory` type and `webSocketFactory` config option to allow custom WebSocket implementations
+  - Improved error state handling with better CSP violation detection and surfacing
+  - Switched to `text-field-edit` library for more reliable text insertion and selection handling in form fields
+
+- Updated dependencies
+  - @speechos/core@0.2.6
+
 ## 0.2.6
 
 ### Patch Changes
