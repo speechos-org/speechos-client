@@ -559,3 +559,463 @@ describe("Widget no-audio warning", () => {
     });
   });
 });
+
+describe("Widget text manipulation", () => {
+  let widget: any;
+  let execCommandSpy: any;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    state.reset();
+    events.clear();
+
+    // Mock document.execCommand which is used by text-field-edit
+    // Define execCommand if it doesn't exist (happy-dom doesn't have it)
+    if (!document.execCommand) {
+      (document as any).execCommand = () => true;
+    }
+
+    execCommandSpy = vi.spyOn(document, "execCommand").mockImplementation((command, showUI, value) => {
+      if (command === "insertText" && value) {
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement)) {
+          const start = activeEl.selectionStart || 0;
+          const end = activeEl.selectionEnd || 0;
+          const before = activeEl.value.substring(0, start);
+          const after = activeEl.value.substring(end);
+          activeEl.value = before + value + after;
+          const newPos = start + value.length;
+          activeEl.setSelectionRange(newPos, newPos);
+          activeEl.dispatchEvent(new Event("input", { bubbles: true }));
+        } else if (activeEl && (activeEl as HTMLElement).isContentEditable) {
+          // For contentEditable, replace the selected range with the new text
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            const textNode = document.createTextNode(value);
+            range.insertNode(textNode);
+            // Move cursor to end of inserted text
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          } else {
+            // No selection - just append
+            (activeEl as HTMLElement).textContent = ((activeEl as HTMLElement).textContent || "") + value;
+          }
+        }
+      }
+      return true;
+    });
+
+    // Dynamically import to ensure widget is registered
+    await import("./widget.js");
+
+    widget = document.createElement("speechos-widget");
+    document.body.appendChild(widget);
+    await widget.updateComplete;
+  });
+
+  afterEach(() => {
+    if (widget && widget.parentNode) {
+      widget.parentNode.removeChild(widget);
+    }
+    document.body.innerHTML = "";
+    if (execCommandSpy) {
+      execCommandSpy.mockRestore();
+    }
+    vi.restoreAllMocks();
+  });
+
+  describe("insertTranscription", () => {
+    it("should insert text at cursor position in input element", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Hello ";
+      document.body.appendChild(input);
+
+      // Set cursor position
+      input.setSelectionRange(6, 6);
+
+      widget.dictationTargetElement = input;
+      widget.dictationCursorStart = 6;
+      widget.dictationCursorEnd = 6;
+
+      widget.insertTranscription("world");
+
+      expect(input.value).toBe("Hello world");
+      expect(widget.dictationTargetElement).toBeNull();
+    });
+
+    it("should replace selected text in textarea", () => {
+      const textarea = document.createElement("textarea");
+      textarea.value = "Hello old text";
+      document.body.appendChild(textarea);
+
+      // Select "old "
+      textarea.setSelectionRange(6, 10);
+
+      widget.dictationTargetElement = textarea;
+      widget.dictationCursorStart = 6;
+      widget.dictationCursorEnd = 10;
+
+      widget.insertTranscription("new");
+
+      expect(textarea.value).toBe("Hello newtext");
+    });
+
+    it("should insert text in contentEditable element", () => {
+      const div = document.createElement("div");
+      div.contentEditable = "true";
+      div.textContent = "Initial text";
+      document.body.appendChild(div);
+
+      widget.dictationTargetElement = div;
+
+      widget.insertTranscription(" added");
+
+      expect(div.textContent).toContain("added");
+    });
+
+    it("should emit transcription:inserted event", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      const listener = vi.fn();
+      events.on("transcription:inserted", listener);
+
+      widget.dictationTargetElement = input;
+      widget.dictationCursorStart = 0;
+      widget.dictationCursorEnd = 0;
+
+      widget.insertTranscription("test");
+
+      expect(listener).toHaveBeenCalledWith({
+        text: "test",
+        element: input,
+      });
+    });
+
+    it("should handle missing target element gracefully", () => {
+      widget.dictationTargetElement = null;
+
+      expect(() => {
+        widget.insertTranscription("test");
+      }).not.toThrow();
+    });
+
+    it("should restore cursor position using saved positions", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Start End";
+      document.body.appendChild(input);
+
+      // Initially set cursor to end
+      input.setSelectionRange(9, 9);
+
+      // Save cursor position in middle
+      widget.dictationTargetElement = input;
+      widget.dictationCursorStart = 6;
+      widget.dictationCursorEnd = 6;
+
+      widget.insertTranscription("Middle ");
+
+      expect(input.value).toBe("Start Middle End");
+    });
+  });
+
+  describe("applyEdit", () => {
+    it("should replace selected text in input element", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Hello world";
+      document.body.appendChild(input);
+
+      // Select "world"
+      input.setSelectionRange(6, 11);
+
+      widget.editTargetElement = input;
+      widget.editSelectionStart = 6;
+      widget.editSelectionEnd = 11;
+
+      widget.applyEdit("universe");
+
+      expect(input.value).toBe("Hello universe");
+    });
+
+    it("should replace entire content when no selection", () => {
+      const textarea = document.createElement("textarea");
+      textarea.value = "Old content";
+      document.body.appendChild(textarea);
+
+      widget.editTargetElement = textarea;
+      widget.editSelectionStart = 0;
+      widget.editSelectionEnd = 0;
+
+      widget.applyEdit("New content");
+
+      expect(textarea.value).toBe("New content");
+    });
+
+    it("should replace all content in contentEditable element when no selection", () => {
+      const div = document.createElement("div");
+      div.contentEditable = "true";
+      div.textContent = "Old text";
+      document.body.appendChild(div);
+
+      widget.editTargetElement = div;
+      widget.editSelectionStart = null;
+      widget.editSelectionEnd = null;
+
+      widget.applyEdit("New text");
+
+      expect(div.textContent).toBe("New text");
+    });
+
+    it("should emit edit:applied event", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Original";
+      document.body.appendChild(input);
+
+      const listener = vi.fn();
+      events.on("edit:applied", listener);
+
+      widget.editTargetElement = input;
+      widget.editSelectionStart = 0;
+      widget.editSelectionEnd = 0;
+
+      widget.applyEdit("Edited");
+
+      expect(listener).toHaveBeenCalledWith({
+        originalContent: "Original",
+        editedContent: "Edited",
+        element: input,
+      });
+    });
+
+    it("should complete recording state", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      state.startRecording();
+      state.setRecordingState("recording");
+
+      widget.editTargetElement = input;
+      widget.editSelectionStart = 0;
+      widget.editSelectionEnd = 0;
+
+      widget.applyEdit("Test");
+
+      expect(state.getState().recordingState).toBe("idle");
+    });
+
+    it("should handle missing target element gracefully", () => {
+      widget.editTargetElement = null;
+
+      expect(() => {
+        widget.applyEdit("test");
+      }).not.toThrow();
+
+      expect(state.getState().recordingState).toBe("idle");
+    });
+
+    it("should clear edit state after applying", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      widget.editTargetElement = input;
+      widget.editSelectionStart = 0;
+      widget.editSelectionEnd = 5;
+      widget.editSelectedText = "hello";
+
+      widget.applyEdit("Test");
+
+      expect(widget.editTargetElement).toBeNull();
+      expect(widget.editSelectionStart).toBeNull();
+      expect(widget.editSelectionEnd).toBeNull();
+      expect(widget.editSelectedText).toBe("");
+    });
+  });
+
+  describe("getElementContent", () => {
+    it("should return selected text from input element", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Hello world";
+      document.body.appendChild(input);
+
+      // Select "world"
+      input.setSelectionRange(6, 11);
+
+      const content = widget.getElementContent(input);
+
+      expect(content).toBe("world");
+    });
+
+    it("should return full content when no selection in input", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Full content";
+      document.body.appendChild(input);
+
+      // No selection
+      input.setSelectionRange(0, 0);
+
+      const content = widget.getElementContent(input);
+
+      expect(content).toBe("Full content");
+    });
+
+    it("should return selected text from textarea", () => {
+      const textarea = document.createElement("textarea");
+      textarea.value = "Line 1\nLine 2\nLine 3";
+      document.body.appendChild(textarea);
+
+      // Select "Line 2"
+      textarea.setSelectionRange(7, 13);
+
+      const content = widget.getElementContent(textarea);
+
+      expect(content).toBe("Line 2");
+    });
+
+    it("should return full content from textarea when no selection", () => {
+      const textarea = document.createElement("textarea");
+      textarea.value = "Full\nContent\nHere";
+      document.body.appendChild(textarea);
+
+      textarea.setSelectionRange(0, 0);
+
+      const content = widget.getElementContent(textarea);
+
+      expect(content).toBe("Full\nContent\nHere");
+    });
+
+    it("should return selected text from contentEditable element", () => {
+      const div = document.createElement("div");
+      div.contentEditable = "true";
+      div.textContent = "Some editable content";
+      document.body.appendChild(div);
+
+      // Create a selection
+      const range = document.createRange();
+      const textNode = div.firstChild!;
+      range.setStart(textNode, 5);
+      range.setEnd(textNode, 13);
+      const selection = window.getSelection()!;
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      const content = widget.getElementContent(div);
+
+      expect(content).toBe("editable");
+    });
+
+    it("should return full text from contentEditable when no selection", () => {
+      const div = document.createElement("div");
+      div.contentEditable = "true";
+      div.textContent = "All content";
+      document.body.appendChild(div);
+
+      // Clear selection
+      const selection = window.getSelection()!;
+      selection.removeAllRanges();
+
+      const content = widget.getElementContent(div);
+
+      expect(content).toBe("All content");
+    });
+
+    it("should return empty string for null element", () => {
+      const content = widget.getElementContent(null);
+
+      expect(content).toBe("");
+    });
+
+    it("should return empty string for non-editable element", () => {
+      const div = document.createElement("div");
+      div.textContent = "Not editable";
+      document.body.appendChild(div);
+
+      const content = widget.getElementContent(div);
+
+      expect(content).toBe("");
+    });
+  });
+
+  describe("supportsSelection", () => {
+    it("should return true for textarea", () => {
+      const textarea = document.createElement("textarea");
+
+      expect(widget.supportsSelection(textarea)).toBe(true);
+    });
+
+    it("should return true for text input", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+
+      expect(widget.supportsSelection(input)).toBe(true);
+    });
+
+    it("should return true for search input", () => {
+      const input = document.createElement("input");
+      input.type = "search";
+
+      expect(widget.supportsSelection(input)).toBe(true);
+    });
+
+    it("should return true for url input", () => {
+      const input = document.createElement("input");
+      input.type = "url";
+
+      expect(widget.supportsSelection(input)).toBe(true);
+    });
+
+    it("should return true for tel input", () => {
+      const input = document.createElement("input");
+      input.type = "tel";
+
+      expect(widget.supportsSelection(input)).toBe(true);
+    });
+
+    it("should return true for password input", () => {
+      const input = document.createElement("input");
+      input.type = "password";
+
+      expect(widget.supportsSelection(input)).toBe(true);
+    });
+
+    it("should return false for number input", () => {
+      const input = document.createElement("input");
+      input.type = "number";
+
+      expect(widget.supportsSelection(input)).toBe(false);
+    });
+
+    it("should return false for checkbox input", () => {
+      const input = document.createElement("input");
+      input.type = "checkbox";
+
+      expect(widget.supportsSelection(input)).toBe(false);
+    });
+
+    it("should return false for radio input", () => {
+      const input = document.createElement("input");
+      input.type = "radio";
+
+      expect(widget.supportsSelection(input)).toBe(false);
+    });
+
+    it("should return false for file input", () => {
+      const input = document.createElement("input");
+      input.type = "file";
+
+      expect(widget.supportsSelection(input)).toBe(false);
+    });
+  });
+});

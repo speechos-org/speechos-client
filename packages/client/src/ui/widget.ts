@@ -25,6 +25,7 @@ import {
 import { getClientConfig, isAlwaysVisible } from "../config.js";
 import { getSessionSettings } from "../speechos.js";
 import { transcriptStore } from "../stores/transcript-store.js";
+import { insert, set as setField, getSelection, replace as replaceField } from "text-field-edit";
 
 // Import child components
 import "./mic-button.js";
@@ -733,23 +734,18 @@ export class SpeechOSWidget extends LitElement {
     const tagName = target.tagName.toLowerCase();
     if (tagName === "input" || tagName === "textarea") {
       const inputEl = target as HTMLInputElement | HTMLTextAreaElement;
+      // Restore cursor position before inserting
       const start = this.dictationCursorStart ?? inputEl.value.length;
       const end = this.dictationCursorEnd ?? inputEl.value.length;
-      const before = inputEl.value.substring(0, start);
-      const after = inputEl.value.substring(end);
-      inputEl.value = before + text + after;
-      if (this.supportsSelection(inputEl)) {
-        const newCursorPos = start + text.length;
-        inputEl.setSelectionRange(newCursorPos, newCursorPos);
-      }
-      inputEl.dispatchEvent(new Event("input", { bubbles: true }));
-      inputEl.focus();
+      inputEl.setSelectionRange(start, end);
+      // Use text-field-edit to insert text (handles undo, events, etc.)
+      insert(inputEl, text);
       state.setFocusedElement(inputEl);
     } else if (target.isContentEditable) {
       target.focus();
       state.setFocusedElement(target);
-      // Use execCommand for compatibility with rich text editors
-      document.execCommand("insertText", false, text);
+      // Use text-field-edit for contentEditable elements
+      insert(target, text);
     }
     events.emit("transcription:inserted", { text, element: target });
     this.dictationTargetElement = null;
@@ -889,20 +885,19 @@ export class SpeechOSWidget extends LitElement {
           const start = this.editSelectionStart ?? 0;
           const end = this.editSelectionEnd ?? 0;
           if (start !== end) {
-            this.editSelectedText = inputEl.value.substring(start, end);
+            // Use getSelection from text-field-edit
+            this.editSelectedText = getSelection(inputEl);
           }
         } else {
           this.editSelectionStart = 0;
           this.editSelectionEnd = 0;
         }
       } else if (this.editTargetElement.isContentEditable) {
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const selectedText = selection.toString();
-          this.editSelectionStart = 0;
-          this.editSelectionEnd = selectedText.length;
-          this.editSelectedText = selectedText;
-        }
+        // Use getSelection from text-field-edit for contentEditable too
+        const selectedText = getSelection(this.editTargetElement);
+        this.editSelectionStart = 0;
+        this.editSelectionEnd = selectedText.length;
+        this.editSelectedText = selectedText;
       }
     }
 
@@ -1241,20 +1236,13 @@ export class SpeechOSWidget extends LitElement {
     const tagName = element.tagName.toLowerCase();
     if (tagName === "input" || tagName === "textarea") {
       const inputEl = element as HTMLInputElement | HTMLTextAreaElement;
-      const fullContent = inputEl.value;
-      const start = this.editSelectionStart ?? 0;
-      const end = this.editSelectionEnd ?? fullContent.length;
-      const hasSelection = start !== end;
-      if (hasSelection) {
-        return fullContent.substring(start, end);
-      }
-      return fullContent;
+      const selectedText = getSelection(inputEl);
+      // If there's selected text, return it; otherwise return full content
+      return selectedText || inputEl.value;
     } else if (element.isContentEditable) {
-      const selection = window.getSelection();
-      if (selection && selection.toString().length > 0) {
-        return selection.toString();
-      }
-      return element.textContent || "";
+      const selectedText = getSelection(element);
+      // If there's selected text, return it; otherwise return full content
+      return selectedText || element.textContent || "";
     }
     return "";
   }
@@ -1265,37 +1253,42 @@ export class SpeechOSWidget extends LitElement {
       state.completeRecording();
       return;
     }
+
     const tagName = target.tagName.toLowerCase();
     let originalContent = "";
+
     if (tagName === "input" || tagName === "textarea") {
       const inputEl = target as HTMLInputElement | HTMLTextAreaElement;
       originalContent = inputEl.value;
-      inputEl.focus();
-      if (this.supportsSelection(inputEl)) {
-        const selectionStart = this.editSelectionStart ?? 0;
-        const selectionEnd = this.editSelectionEnd ?? inputEl.value.length;
-        const hasSelection = selectionStart !== selectionEnd;
-        if (hasSelection) {
-          inputEl.setSelectionRange(selectionStart, selectionEnd);
-        } else {
-          inputEl.setSelectionRange(0, inputEl.value.length);
-        }
-        document.execCommand("insertText", false, editedText);
+
+      // Restore the original selection/cursor position
+      const selectionStart = this.editSelectionStart ?? 0;
+      const selectionEnd = this.editSelectionEnd ?? inputEl.value.length;
+      const hasSelection = selectionStart !== selectionEnd;
+
+      if (hasSelection) {
+        // Restore selection, then use insert() to replace it
+        inputEl.setSelectionRange(selectionStart, selectionEnd);
+        insert(inputEl, editedText);
       } else {
-        inputEl.value = editedText;
-        inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        // No selection - replace entire content using set()
+        setField(inputEl, editedText);
       }
       state.setFocusedElement(inputEl);
     } else if (target.isContentEditable) {
       originalContent = target.textContent || "";
-      target.focus();
-      state.setFocusedElement(target);
       const hasSelection =
         this.editSelectionStart !== null &&
         this.editSelectionEnd !== null &&
         this.editSelectionStart !== this.editSelectionEnd;
-      if (!hasSelection) {
-        // Select all content in the target element
+
+      if (hasSelection) {
+        // Selection exists - focus and insert (assumes selection is still active or we restore it)
+        target.focus();
+        insert(target, editedText);
+      } else {
+        // No selection - select all content first, then replace with insert()
+        target.focus();
         const selection = window.getSelection();
         if (selection) {
           const range = document.createRange();
@@ -1303,9 +1296,11 @@ export class SpeechOSWidget extends LitElement {
           selection.removeAllRanges();
           selection.addRange(range);
         }
+        insert(target, editedText);
       }
-      document.execCommand("insertText", false, editedText);
+      state.setFocusedElement(target);
     }
+
     transcriptStore.saveTranscript(editedText, "edit", originalContent);
     events.emit("edit:applied", {
       originalContent,

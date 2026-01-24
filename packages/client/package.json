@@ -64,6 +64,7 @@
   "dependencies": {
     "@speechos/core": "*",
     "lit": "^3.3.2",
-    "lucide": "^0.562.0"
+    "lucide": "^0.562.0",
+    "text-field-edit": "^4.1.1"
   }
 }
