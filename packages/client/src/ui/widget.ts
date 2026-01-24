@@ -152,6 +152,9 @@ export class SpeechOSWidget extends LitElement {
   @litState()
   private showNoAudioWarning = false;
 
+  @litState()
+  private isErrorRetryable = true;
+
   private stateUnsubscribe?: UnsubscribeFn;
   private errorEventUnsubscribe?: UnsubscribeFn;
   private dictationTargetElement: HTMLElement | null = null;
@@ -238,6 +241,8 @@ export class SpeechOSWidget extends LitElement {
         this.widgetState.recordingState !== "idle" &&
         this.widgetState.recordingState !== "error"
       ) {
+        // Check if this is a non-retryable error (e.g., CSP blocked connection)
+        this.isErrorRetryable = payload.code !== "connection_blocked";
         state.setError(payload.message);
         getBackend().disconnect().catch(() => {});
       }
@@ -820,14 +825,18 @@ export class SpeechOSWidget extends LitElement {
           const elapsed = Date.now() - connectingStartTime;
           const remainingDelay = MIN_CONNECTING_ANIMATION_MS - elapsed;
 
-          if (remainingDelay > 0) {
-            setTimeout(() => {
-              state.setRecordingState("recording");
-              this.startNoAudioWarningTracking();
-            }, remainingDelay);
-          } else {
+          const startRecording = () => {
+            if (state.getState().recordingState === "error") {
+              return;
+            }
             state.setRecordingState("recording");
             this.startNoAudioWarningTracking();
+          };
+
+          if (remainingDelay > 0) {
+            setTimeout(startRecording, remainingDelay);
+          } else {
+            startRecording();
           }
         },
       });
@@ -894,14 +903,18 @@ export class SpeechOSWidget extends LitElement {
           const elapsed = Date.now() - connectingStartTime;
           const remainingDelay = MIN_CONNECTING_ANIMATION_MS - elapsed;
 
-          if (remainingDelay > 0) {
-            setTimeout(() => {
-              state.setRecordingState("recording");
-              this.startNoAudioWarningTracking();
-            }, remainingDelay);
-          } else {
+          const startRecording = () => {
+            if (state.getState().recordingState === "error") {
+              return;
+            }
             state.setRecordingState("recording");
             this.startNoAudioWarningTracking();
+          };
+
+          if (remainingDelay > 0) {
+            setTimeout(startRecording, remainingDelay);
+          } else {
+            startRecording();
           }
         },
       });
@@ -979,14 +992,18 @@ export class SpeechOSWidget extends LitElement {
           const elapsed = Date.now() - connectingStartTime;
           const remainingDelay = MIN_CONNECTING_ANIMATION_MS - elapsed;
 
-          if (remainingDelay > 0) {
-            setTimeout(() => {
-              state.setRecordingState("recording");
-              this.startNoAudioWarningTracking();
-            }, remainingDelay);
-          } else {
+          const startRecording = () => {
+            if (state.getState().recordingState === "error") {
+              return;
+            }
             state.setRecordingState("recording");
             this.startNoAudioWarningTracking();
+          };
+
+          if (remainingDelay > 0) {
+            setTimeout(startRecording, remainingDelay);
+          } else {
+            startRecording();
           }
         },
       });
@@ -1308,6 +1325,7 @@ export class SpeechOSWidget extends LitElement {
             activeAction="${this.widgetState.activeAction || ""}"
             editPreviewText="${this.editSelectedText}"
             errorMessage="${this.widgetState.errorMessage || ""}"
+            ?showRetryButton="${this.isErrorRetryable}"
             .actionFeedback="${this.actionFeedback}"
             ?showNoAudioWarning="${this.showNoAudioWarning}"
             @mic-click="${this.handleMicClick}"

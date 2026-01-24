@@ -724,10 +724,14 @@ export class SpeechOSMicButton extends LitElement {
         bottom: 72px; /* Above button */
         left: 50%;
         transform: translateX(-50%) translateY(8px);
+        min-width: 200px;
         max-width: 280px;
+        width: max-content;
         font-size: 13px;
         color: white;
         white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
         text-align: center;
         padding: 12px 16px;
         border-radius: 12px;
@@ -940,6 +944,7 @@ export class SpeechOSMicButton extends LitElement {
         .error-message {
           font-size: 15px;
           padding: 14px 18px;
+          min-width: 220px;
           max-width: 300px;
           bottom: 94px;
         }
@@ -981,6 +986,9 @@ export class SpeechOSMicButton extends LitElement {
 
   @property({ type: String })
   errorMessage: string | null = null;
+
+  @property({ type: Boolean })
+  showRetryButton = true;
 
   @property({ type: String })
   actionFeedback: "command-success" | "command-none" | "edit-empty" | null = null;
@@ -1230,9 +1238,13 @@ export class SpeechOSMicButton extends LitElement {
           ? html`
               <div class="error-message ${showError ? "visible" : ""}">
                 ${this.errorMessage}
-                <button class="retry-button" @click="${this.handleRetry}">
-                  Retry Connection
-                </button>
+                ${this.showRetryButton
+                  ? html`
+                      <button class="retry-button" @click="${this.handleRetry}">
+                        Retry Connection
+                      </button>
+                    `
+                  : ""}
               </div>
             `
           : ""}

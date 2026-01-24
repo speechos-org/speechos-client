@@ -202,6 +202,15 @@ class WebSocketManager {
       console.log('[SpeechOS] Connecting to WebSocket:', wsUrl);
     }
 
+    // Prepare auth promise before creating WebSocket so early errors can reject it
+    this.pendingAuth = new Deferred<void>();
+    this.pendingAuth.setTimeout(
+      RESPONSE_TIMEOUT_MS,
+      'Connection timed out',
+      'connection_timeout',
+      'connection'
+    );
+
     this.ws = new WebSocket(wsUrl);
 
     // Set up event handlers
@@ -217,12 +226,25 @@ class WebSocketManager {
     };
 
     this.ws.onerror = (event) => {
-      console.error('[SpeechOS] WebSocket error:', event);
+      // Check if connection was blocked (e.g., by CSP) - readyState will be CLOSED
+      // without ever successfully connecting
+      const isConnectionBlocked = this.ws?.readyState === WebSocket.CLOSED;
+      const errorCode = isConnectionBlocked ? 'connection_blocked' : 'websocket_error';
+      const errorMessage = isConnectionBlocked
+        ? 'This website blocks voice connections. SpeechOS is not available here.'
+        : 'WebSocket connection error';
+
+      console.error('[SpeechOS] WebSocket error:', event, { isConnectionBlocked });
       events.emit('error', {
-        code: 'websocket_error',
-        message: 'WebSocket connection error',
+        code: errorCode,
+        message: errorMessage,
         source: 'connection',
       });
+
+      // Immediately reject pending auth to stop the connection attempt
+      if (this.pendingAuth) {
+        this.pendingAuth.reject(new Error(errorMessage));
+      }
     };
 
     this.ws.onclose = (event) => {
@@ -231,15 +253,6 @@ class WebSocketManager {
       }
       state.setConnected(false);
     };
-
-    // Wait for authentication
-    this.pendingAuth = new Deferred<void>();
-    this.pendingAuth.setTimeout(
-      RESPONSE_TIMEOUT_MS,
-      'Connection timed out',
-      'connection_timeout',
-      'connection'
-    );
 
     await this.pendingAuth.promise;
     this.pendingAuth = null;
