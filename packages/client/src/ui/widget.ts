@@ -25,7 +25,7 @@ import {
 import { getClientConfig, isAlwaysVisible } from "../config.js";
 import { getSessionSettings } from "../speechos.js";
 import { transcriptStore } from "../stores/transcript-store.js";
-import { insert, set as setField, getSelection, replace as replaceField } from "text-field-edit";
+import { insertTextIntoField, setFieldText, getFieldSelection } from "text-field-edit";
 
 // Import child components
 import "./mic-button.js";
@@ -34,6 +34,7 @@ import "./settings-button.js";
 import "./settings-modal.js";
 import "./dictation-output-modal.js";
 import "./edit-help-modal.js";
+import type { DictationOutputModalMode } from "./dictation-output-modal.js";
 
 /**
  * Minimum duration to show the connecting animation (in milliseconds).
@@ -143,6 +144,9 @@ export class SpeechOSWidget extends LitElement {
 
   @litState()
   private dictationModalText = "";
+
+  @litState()
+  private dictationModalMode: DictationOutputModalMode = "dictation";
 
   @litState()
   private editHelpModalOpen = false;
@@ -332,6 +336,9 @@ export class SpeechOSWidget extends LitElement {
     }
     if (changedProperties.has("dictationModalText") && this.dictationModalElement) {
       (this.dictationModalElement as any).text = this.dictationModalText;
+    }
+    if (changedProperties.has("dictationModalMode") && this.dictationModalElement) {
+      (this.dictationModalElement as any).mode = this.dictationModalMode;
     }
     if (changedProperties.has("editHelpModalOpen") && this.editHelpModalElement) {
       (this.editHelpModalElement as any).open = this.editHelpModalOpen;
@@ -584,6 +591,7 @@ export class SpeechOSWidget extends LitElement {
               console.log("[SpeechOS] No target element, showing dictation modal");
             }
             this.dictationModalText = transcription;
+            this.dictationModalMode = "dictation";
             this.dictationModalOpen = true;
           }
           transcriptStore.saveTranscript(transcription, "dictate");
@@ -732,6 +740,8 @@ export class SpeechOSWidget extends LitElement {
       return;
     }
     const tagName = target.tagName.toLowerCase();
+    const originalContent = this.getElementContent(target) || "";
+
     if (tagName === "input" || tagName === "textarea") {
       const inputEl = target as HTMLInputElement | HTMLTextAreaElement;
       // Restore cursor position before inserting
@@ -739,18 +749,66 @@ export class SpeechOSWidget extends LitElement {
       const end = this.dictationCursorEnd ?? inputEl.value.length;
       inputEl.setSelectionRange(start, end);
       // Use text-field-edit to insert text (handles undo, events, etc.)
-      insert(inputEl, text);
+      insertTextIntoField(inputEl, text);
       state.setFocusedElement(inputEl);
     } else if (target.isContentEditable) {
       target.focus();
       state.setFocusedElement(target);
       // Use text-field-edit for contentEditable elements
-      insert(target, text);
+      insertTextIntoField(target, text);
     }
     events.emit("transcription:inserted", { text, element: target });
+
+    // Verify insertion was applied after DOM updates
+    this.verifyInsertionApplied(target, text, originalContent);
+
     this.dictationTargetElement = null;
     this.dictationCursorStart = null;
     this.dictationCursorEnd = null;
+  }
+
+  /**
+   * Verify that a dictation insertion was actually applied to the target element.
+   * Some custom editors (CodeMirror, Monaco, Slate, etc.) don't respond to
+   * standard DOM editing methods. If the insertion fails, show a fallback modal.
+   */
+  private verifyInsertionApplied(
+    target: HTMLElement,
+    insertedText: string,
+    originalContent: string
+  ): void {
+    // Use requestAnimationFrame to check after DOM updates
+    requestAnimationFrame(() => {
+      const tagName = target.tagName.toLowerCase();
+      let currentContent = "";
+
+      if (tagName === "input" || tagName === "textarea") {
+        currentContent = (target as HTMLInputElement | HTMLTextAreaElement).value;
+      } else if (target.isContentEditable) {
+        currentContent = target.textContent || "";
+      }
+
+      // Check if the insertion was applied:
+      // - Content should contain the inserted text
+      // - Or content should be different from original (for empty fields)
+      const insertionApplied =
+        currentContent.includes(insertedText) ||
+        (originalContent === "" && currentContent !== "");
+
+      if (!insertionApplied) {
+        if (getConfig().debug) {
+          console.log("[SpeechOS] Dictation failed to insert, showing fallback modal", {
+            insertedText,
+            currentContent,
+            originalContent,
+          });
+        }
+        // Show fallback modal with dictation mode styling
+        this.dictationModalText = insertedText;
+        this.dictationModalMode = "dictation";
+        this.dictationModalOpen = true;
+      }
+    });
   }
 
   private handleActionSelect(event: CustomEvent): void {
@@ -885,16 +943,16 @@ export class SpeechOSWidget extends LitElement {
           const start = this.editSelectionStart ?? 0;
           const end = this.editSelectionEnd ?? 0;
           if (start !== end) {
-            // Use getSelection from text-field-edit
-            this.editSelectedText = getSelection(inputEl);
+            // Use getFieldSelection from text-field-edit
+            this.editSelectedText = getFieldSelection(inputEl);
           }
         } else {
           this.editSelectionStart = 0;
           this.editSelectionEnd = 0;
         }
       } else if (this.editTargetElement.isContentEditable) {
-        // Use getSelection from text-field-edit for contentEditable too
-        const selectedText = getSelection(this.editTargetElement);
+        // Use getFieldSelection from text-field-edit for contentEditable too
+        const selectedText = getFieldSelection(this.editTargetElement);
         this.editSelectionStart = 0;
         this.editSelectionEnd = selectedText.length;
         this.editSelectedText = selectedText;
@@ -1236,11 +1294,11 @@ export class SpeechOSWidget extends LitElement {
     const tagName = element.tagName.toLowerCase();
     if (tagName === "input" || tagName === "textarea") {
       const inputEl = element as HTMLInputElement | HTMLTextAreaElement;
-      const selectedText = getSelection(inputEl);
+      const selectedText = getFieldSelection(inputEl);
       // If there's selected text, return it; otherwise return full content
       return selectedText || inputEl.value;
     } else if (element.isContentEditable) {
-      const selectedText = getSelection(element);
+      const selectedText = getFieldSelection(element);
       // If there's selected text, return it; otherwise return full content
       return selectedText || element.textContent || "";
     }
@@ -1267,12 +1325,12 @@ export class SpeechOSWidget extends LitElement {
       const hasSelection = selectionStart !== selectionEnd;
 
       if (hasSelection) {
-        // Restore selection, then use insert() to replace it
+        // Restore selection, then use insertTextIntoField() to replace it
         inputEl.setSelectionRange(selectionStart, selectionEnd);
-        insert(inputEl, editedText);
+        insertTextIntoField(inputEl, editedText);
       } else {
-        // No selection - replace entire content using set()
-        setField(inputEl, editedText);
+        // No selection - replace entire content using setFieldText()
+        setFieldText(inputEl, editedText);
       }
       state.setFocusedElement(inputEl);
     } else if (target.isContentEditable) {
@@ -1285,9 +1343,9 @@ export class SpeechOSWidget extends LitElement {
       if (hasSelection) {
         // Selection exists - focus and insert (assumes selection is still active or we restore it)
         target.focus();
-        insert(target, editedText);
+        insertTextIntoField(target, editedText);
       } else {
-        // No selection - select all content first, then replace with insert()
+        // No selection - select all content first, then replace with insertTextIntoField()
         target.focus();
         const selection = window.getSelection();
         if (selection) {
@@ -1296,7 +1354,7 @@ export class SpeechOSWidget extends LitElement {
           selection.removeAllRanges();
           selection.addRange(range);
         }
-        insert(target, editedText);
+        insertTextIntoField(target, editedText);
       }
       state.setFocusedElement(target);
     }
@@ -1308,10 +1366,64 @@ export class SpeechOSWidget extends LitElement {
       element: target,
     });
     state.completeRecording();
+
+    // Verify edit was applied after DOM updates
+    this.verifyEditApplied(target, editedText, originalContent);
+
     this.editTargetElement = null;
     this.editSelectionStart = null;
     this.editSelectionEnd = null;
     this.editSelectedText = "";
+  }
+
+  /**
+   * Verify that an edit was actually applied to the target element.
+   * Some custom editors (CodeMirror, Monaco, Slate, etc.) don't respond to
+   * standard DOM editing methods. If the edit fails, show a fallback modal.
+   */
+  private verifyEditApplied(
+    target: HTMLElement,
+    editedText: string,
+    originalContent: string
+  ): void {
+    // Use requestAnimationFrame to check after DOM updates
+    requestAnimationFrame(() => {
+      const tagName = target.tagName.toLowerCase();
+      let currentContent = "";
+
+      if (tagName === "input" || tagName === "textarea") {
+        currentContent = (target as HTMLInputElement | HTMLTextAreaElement).value;
+      } else if (target.isContentEditable) {
+        currentContent = target.textContent || "";
+      }
+
+      // Normalize whitespace for comparison
+      const normalizedCurrent = currentContent.trim();
+      const normalizedEdited = editedText.trim();
+      const normalizedOriginal = originalContent.trim();
+
+      // Check if the edit was applied:
+      // - Content should be different from original (unless edit was no-op)
+      // - Content should contain or match the edited text
+      const editApplied =
+        normalizedCurrent !== normalizedOriginal ||
+        normalizedCurrent === normalizedEdited ||
+        normalizedCurrent.includes(normalizedEdited);
+
+      if (!editApplied) {
+        if (getConfig().debug) {
+          console.log("[SpeechOS] Edit failed to apply, showing fallback modal", {
+            expected: editedText,
+            actual: currentContent,
+            original: originalContent,
+          });
+        }
+        // Show fallback modal with edit mode styling
+        this.dictationModalText = editedText;
+        this.dictationModalMode = "edit";
+        this.dictationModalOpen = true;
+      }
+    });
   }
 
   render(): TemplateResult | string {

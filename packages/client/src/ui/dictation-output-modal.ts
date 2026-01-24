@@ -7,7 +7,9 @@ import { LitElement, html, css, type CSSResultGroup } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { themeStyles } from "./styles/theme.js";
 import { popupModalStyles } from "./styles/popup-modal-styles.js";
-import { xIcon, copyIcon, checkIcon, micIcon } from "./icons.js";
+import { xIcon, copyIcon, checkIcon, micIcon, editIcon } from "./icons.js";
+
+export type DictationOutputModalMode = "dictation" | "edit";
 
 @customElement("speechos-dictation-output-modal")
 export class SpeechOSDictationOutputModal extends LitElement {
@@ -87,6 +89,41 @@ export class SpeechOSDictationOutputModal extends LitElement {
         color: #10b981;
         flex-shrink: 0;
       }
+
+      /* Edit mode styles */
+      :host([mode="edit"]) .logo-icon {
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+      }
+
+      :host([mode="edit"]) .modal-title {
+        background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      :host([mode="edit"]) .hint {
+        background: rgba(139, 92, 246, 0.08);
+      }
+
+      :host([mode="edit"]) .hint-icon {
+        color: #8b5cf6;
+      }
+
+      :host([mode="edit"]) .btn-primary {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+      }
+
+      :host([mode="edit"]) .btn-primary:hover {
+        background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+        box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+      }
+
+      :host([mode="edit"]) .btn-success {
+        background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+        box-shadow: 0 4px 12px rgba(167, 139, 250, 0.3);
+      }
     `,
   ];
 
@@ -95,6 +132,9 @@ export class SpeechOSDictationOutputModal extends LitElement {
 
   @property({ type: String })
   text = "";
+
+  @property({ type: String, reflect: true })
+  mode: DictationOutputModalMode = "dictation";
 
   @state()
   private copied = false;
@@ -159,6 +199,20 @@ export class SpeechOSDictationOutputModal extends LitElement {
     }
   }
 
+  private get modalTitle(): string {
+    return this.mode === "edit" ? "Edit Complete" : "Dictation Complete";
+  }
+
+  private get modalIcon() {
+    return this.mode === "edit" ? editIcon(18) : micIcon(18);
+  }
+
+  private get hintText(): string {
+    return this.mode === "edit"
+      ? "Tip: The editor didn't accept the edit. Copy and paste manually."
+      : "Tip: Focus a text field first to auto-insert next time";
+  }
+
   render() {
     return html`
       <div
@@ -168,8 +222,8 @@ export class SpeechOSDictationOutputModal extends LitElement {
         <div class="modal-card">
           <div class="modal-header">
             <div class="header-content">
-              <div class="logo-icon">${micIcon(18)}</div>
-              <h2 class="modal-title">Dictation Complete</h2>
+              <div class="logo-icon">${this.modalIcon}</div>
+              <h2 class="modal-title">${this.modalTitle}</h2>
             </div>
             <button
               class="close-button"
@@ -186,7 +240,7 @@ export class SpeechOSDictationOutputModal extends LitElement {
               <svg class="hint-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
               </svg>
-              <span>Tip: Focus a text field first to auto-insert next time</span>
+              <span>${this.hintText}</span>
             </div>
           </div>
 

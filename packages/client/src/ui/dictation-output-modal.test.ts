@@ -148,4 +148,75 @@ describe("SpeechOSDictationOutputModal", () => {
       expect(title?.textContent).toBe("Dictation Complete");
     });
   });
+
+  describe("mode property", () => {
+    it("should have mode property default to 'dictation'", () => {
+      expect((modal as any).mode).toBe("dictation");
+    });
+
+    it("should display 'Dictation Complete' title when mode is 'dictation'", async () => {
+      (modal as any).mode = "dictation";
+      (modal as any).open = true;
+      await (modal as any).updateComplete;
+
+      const title = modal.shadowRoot?.querySelector(".modal-title");
+      expect(title?.textContent).toBe("Dictation Complete");
+    });
+
+    it("should display 'Edit Complete' title when mode is 'edit'", async () => {
+      (modal as any).mode = "edit";
+      (modal as any).open = true;
+      await (modal as any).updateComplete;
+
+      const title = modal.shadowRoot?.querySelector(".modal-title");
+      expect(title?.textContent).toBe("Edit Complete");
+    });
+
+    it("should display dictation-specific hint when mode is 'dictation'", async () => {
+      (modal as any).mode = "dictation";
+      (modal as any).open = true;
+      await (modal as any).updateComplete;
+
+      const hint = modal.shadowRoot?.querySelector(".hint span");
+      expect(hint?.textContent).toContain("Focus a text field first");
+    });
+
+    it("should display edit-specific hint when mode is 'edit'", async () => {
+      (modal as any).mode = "edit";
+      (modal as any).open = true;
+      await (modal as any).updateComplete;
+
+      const hint = modal.shadowRoot?.querySelector(".hint span");
+      expect(hint?.textContent).toContain("editor didn't accept the edit");
+    });
+
+    it("should reflect mode attribute to host element", async () => {
+      (modal as any).mode = "edit";
+      await (modal as any).updateComplete;
+
+      expect(modal.getAttribute("mode")).toBe("edit");
+    });
+
+    it("should use mic icon when mode is 'dictation'", async () => {
+      (modal as any).mode = "dictation";
+      (modal as any).open = true;
+      await (modal as any).updateComplete;
+
+      const logoIcon = modal.shadowRoot?.querySelector(".logo-icon");
+      const svg = logoIcon?.querySelector("svg");
+      // Mic icon has specific paths for microphone
+      expect(svg?.innerHTML).toContain("M12 2a3 3 0 0 0-3 3v7");
+    });
+
+    it("should use edit icon when mode is 'edit'", async () => {
+      (modal as any).mode = "edit";
+      (modal as any).open = true;
+      await (modal as any).updateComplete;
+
+      const logoIcon = modal.shadowRoot?.querySelector(".logo-icon");
+      const svg = logoIcon?.querySelector("svg");
+      // Edit/pencil icon has different paths
+      expect(svg?.innerHTML).toContain("21.174 6.812");
+    });
+  });
 });

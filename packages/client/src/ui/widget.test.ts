@@ -1018,4 +1018,180 @@ describe("Widget text manipulation", () => {
       expect(widget.supportsSelection(input)).toBe(false);
     });
   });
+
+  describe("edit failure detection", () => {
+    it("should show modal when edit fails to apply to input element", async () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Original content";
+      document.body.appendChild(input);
+
+      // Mock execCommand to fail (return false and don't change value)
+      execCommandSpy.mockImplementation(() => false);
+
+      widget.editTargetElement = input;
+      widget.editSelectionStart = 0;
+      widget.editSelectionEnd = 0;
+
+      widget.applyEdit("New content");
+
+      // Wait for requestAnimationFrame
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await widget.updateComplete;
+
+      // Modal should be shown with edit mode
+      expect(widget.dictationModalOpen).toBe(true);
+      expect(widget.dictationModalMode).toBe("edit");
+      expect(widget.dictationModalText).toBe("New content");
+    });
+
+    it("should not show modal when edit applies successfully", async () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Original content";
+      document.body.appendChild(input);
+
+      widget.editTargetElement = input;
+      widget.editSelectionStart = 0;
+      widget.editSelectionEnd = 0;
+
+      widget.applyEdit("New content");
+
+      // Wait for requestAnimationFrame
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await widget.updateComplete;
+
+      // Modal should NOT be shown because content was updated
+      expect(widget.dictationModalOpen).toBe(false);
+    });
+
+    it("should emit edit:applied event even when showing fallback modal", async () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Original";
+      document.body.appendChild(input);
+
+      // Mock execCommand to fail
+      execCommandSpy.mockImplementation(() => false);
+
+      const listener = vi.fn();
+      events.on("edit:applied", listener);
+
+      widget.editTargetElement = input;
+      widget.editSelectionStart = 0;
+      widget.editSelectionEnd = 0;
+
+      widget.applyEdit("Edited");
+
+      // Event should still be emitted
+      expect(listener).toHaveBeenCalledWith({
+        originalContent: "Original",
+        editedContent: "Edited",
+        element: input,
+      });
+    });
+  });
+
+  describe("dictation insertion failure detection", () => {
+    it("should show modal when dictation fails to insert into input element", async () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "";
+      document.body.appendChild(input);
+
+      // Mock execCommand to fail
+      execCommandSpy.mockImplementation(() => false);
+
+      widget.dictationTargetElement = input;
+      widget.dictationCursorStart = 0;
+      widget.dictationCursorEnd = 0;
+
+      widget.insertTranscription("Dictated text");
+
+      // Wait for requestAnimationFrame
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await widget.updateComplete;
+
+      // Modal should be shown with dictation mode
+      expect(widget.dictationModalOpen).toBe(true);
+      expect(widget.dictationModalMode).toBe("dictation");
+      expect(widget.dictationModalText).toBe("Dictated text");
+    });
+
+    it("should not show modal when dictation inserts successfully", async () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = "Hello ";
+      document.body.appendChild(input);
+
+      widget.dictationTargetElement = input;
+      widget.dictationCursorStart = 6;
+      widget.dictationCursorEnd = 6;
+
+      widget.insertTranscription("world");
+
+      // Wait for requestAnimationFrame
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await widget.updateComplete;
+
+      // Modal should NOT be shown because content was inserted
+      expect(widget.dictationModalOpen).toBe(false);
+      expect(input.value).toBe("Hello world");
+    });
+
+    it("should emit transcription:inserted event even when showing fallback modal", async () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+
+      // Mock execCommand to fail
+      execCommandSpy.mockImplementation(() => false);
+
+      const listener = vi.fn();
+      events.on("transcription:inserted", listener);
+
+      widget.dictationTargetElement = input;
+      widget.dictationCursorStart = 0;
+      widget.dictationCursorEnd = 0;
+
+      widget.insertTranscription("test");
+
+      // Event should still be emitted
+      expect(listener).toHaveBeenCalledWith({
+        text: "test",
+        element: input,
+      });
+    });
+  });
+
+  describe("dictationModalMode state", () => {
+    it("should default to 'dictation' mode", () => {
+      expect(widget.dictationModalMode).toBe("dictation");
+    });
+
+    it("should sync mode to modal element when changed", async () => {
+      widget.dictationModalMode = "edit";
+      await widget.updateComplete;
+
+      expect(widget.dictationModalElement.mode).toBe("edit");
+    });
+
+    it("should set mode to 'dictation' when showing modal for dictation", async () => {
+      widget.dictationModalText = "Test text";
+      widget.dictationModalMode = "dictation";
+      widget.dictationModalOpen = true;
+      await widget.updateComplete;
+
+      expect(widget.dictationModalElement.mode).toBe("dictation");
+    });
+
+    it("should set mode to 'edit' when showing modal for failed edit", async () => {
+      widget.dictationModalText = "Edited text";
+      widget.dictationModalMode = "edit";
+      widget.dictationModalOpen = true;
+      await widget.updateComplete;
+
+      expect(widget.dictationModalElement.mode).toBe("edit");
+    });
+  });
 });
