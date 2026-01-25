@@ -221,6 +221,18 @@ export class FormDetector implements FormDetectorInterface {
     document.addEventListener("mousedown", this.mouseDownHandler, true);
 
     this.isActive = true;
+
+    // Check for already-focused form field (e.g., page loaded with autofocus)
+    const activeElement = document.activeElement;
+    if (isFormField(activeElement)) {
+      console.log("[SpeechOS] FormDetector: found initially focused form field", {
+        element: activeElement,
+        tagName: activeElement?.tagName,
+      });
+      state.setFocusedElement(activeElement);
+      state.show();
+      events.emit("form:focus", { element: activeElement });
+    }
   }
 
   /**

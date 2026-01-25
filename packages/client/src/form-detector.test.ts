@@ -259,6 +259,63 @@ describe("FormDetector", () => {
     });
   });
 
+  describe("initially focused elements", () => {
+    it("should detect already-focused form field when start() is called", () => {
+      // Create and focus an input BEFORE starting the detector
+      const input = document.createElement("input");
+      input.type = "text";
+      document.body.appendChild(input);
+      input.focus();
+
+      // Verify the element is focused
+      expect(document.activeElement).toBe(input);
+
+      const focusListener = vi.fn();
+      events.on("form:focus", focusListener);
+
+      // Now start the detector
+      detector.start();
+
+      // Should detect the already-focused element
+      expect(focusListener).toHaveBeenCalledWith({ element: input });
+      expect(state.getState().isVisible).toBe(true);
+      expect(state.getState().focusedElement).toBe(input);
+    });
+
+    it("should NOT detect non-form element when already focused", () => {
+      // Create and focus a div (not a form field) BEFORE starting the detector
+      const div = document.createElement("div");
+      div.tabIndex = 0; // Make it focusable
+      document.body.appendChild(div);
+      div.focus();
+
+      expect(document.activeElement).toBe(div);
+
+      const focusListener = vi.fn();
+      events.on("form:focus", focusListener);
+
+      // Now start the detector
+      detector.start();
+
+      // Should NOT detect non-form element
+      expect(focusListener).not.toHaveBeenCalled();
+      expect(state.getState().isVisible).toBe(false);
+    });
+
+    it("should detect already-focused textarea", () => {
+      const textarea = document.createElement("textarea");
+      document.body.appendChild(textarea);
+      textarea.focus();
+
+      expect(document.activeElement).toBe(textarea);
+
+      detector.start();
+
+      expect(state.getState().isVisible).toBe(true);
+      expect(state.getState().focusedElement).toBe(textarea);
+    });
+  });
+
   describe("alwaysVisible behavior", () => {
     let isAlwaysVisibleSpy: ReturnType<typeof vi.spyOn>;
 
