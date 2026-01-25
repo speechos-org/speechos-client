@@ -52,6 +52,14 @@ export interface SpeechOSCoreConfig {
   webSocketFactory?: WebSocketFactory;
 
   /**
+   * Custom fetch handler for making HTTP requests.
+   * Used by the Chrome extension to route fetch traffic through the
+   * service worker, bypassing page CSP restrictions.
+   * If not provided, uses the native fetch function.
+   */
+  fetchHandler?: FetchHandler;
+
+  /**
    * JWT token for server-side settings persistence.
    * When provided, user settings (language, vocabulary, snippets) are synced to the server.
    * Generate this token server-side via POST /api/user-settings-token/ with your UserAPIKey.
@@ -352,3 +360,45 @@ export interface WebSocketLike {
  * Used by extensions to provide a proxy WebSocket that bypasses page CSP.
  */
 export type WebSocketFactory = (url: string) => WebSocketLike;
+
+// ============================================
+// Fetch abstraction for extension support
+// ============================================
+
+/**
+ * Options for fetch requests (subset of RequestInit used by settings sync).
+ * Used by extensions to route fetch traffic through the service worker.
+ */
+export interface FetchOptions {
+  /** HTTP method (GET, POST, PUT, DELETE, etc.) */
+  method?: string;
+  /** Request headers */
+  headers?: Record<string, string>;
+  /** Request body (JSON string) */
+  body?: string;
+}
+
+/**
+ * Response from fetch handler (subset of Response used by settings sync).
+ * Provides a Response-like interface that can be serialized through message passing.
+ */
+export interface FetchResponse {
+  /** Whether the response was successful (status 200-299) */
+  ok: boolean;
+  /** HTTP status code */
+  status: number;
+  /** HTTP status text */
+  statusText: string;
+  /** Parse response body as JSON */
+  json(): Promise<unknown>;
+  /** Get response body as text */
+  text(): Promise<string>;
+}
+
+/**
+ * Custom fetch handler for making HTTP requests.
+ * Used by the Chrome extension to route fetch traffic through the
+ * service worker, bypassing page CSP restrictions.
+ * If not provided, uses the native fetch function.
+ */
+export type FetchHandler = (url: string, options?: FetchOptions) => Promise<FetchResponse>;

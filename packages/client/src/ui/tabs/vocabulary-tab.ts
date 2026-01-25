@@ -4,6 +4,7 @@
 
 import { LitElement, html, css, type CSSResultGroup } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { events } from "@speechos/core";
 import { themeStyles } from "../styles/theme.js";
 import { tabContentStyles, formStyles } from "../styles/modal-styles.js";
 import { bookOpenIcon, plusIcon, xIcon, infoIcon } from "../icons.js";
@@ -72,9 +73,24 @@ export class SpeechOSVocabularyTab extends LitElement {
   @state()
   private error: string = "";
 
+  private unsubscribeSettingsLoaded: (() => void) | null = null;
+
   connectedCallback(): void {
     super.connectedCallback();
     this.loadVocabulary();
+
+    // Refresh when settings are loaded from the server
+    this.unsubscribeSettingsLoaded = events.on("settings:loaded", () => {
+      this.loadVocabulary();
+    });
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this.unsubscribeSettingsLoaded) {
+      this.unsubscribeSettingsLoaded();
+      this.unsubscribeSettingsLoaded = null;
+    }
   }
 
   /** Reload vocabulary from store */

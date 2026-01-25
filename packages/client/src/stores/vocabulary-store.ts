@@ -9,6 +9,12 @@ const STORAGE_KEY = "speechos_vocabulary";
 const MAX_TERMS = 50;
 const MAX_TERM_LENGTH = 50;
 
+/**
+ * In-memory cache for vocabulary. When server sync is enabled, this is the
+ * source of truth. localStorage is only used when server sync is disabled.
+ */
+let memoryCache: VocabularyTerm[] | null = null;
+
 export interface VocabularyTerm {
   id: string;
   /** The term or phrase to recognize (max 50 chars) */
@@ -34,14 +40,18 @@ function generateId(): string {
 }
 
 /**
- * Get all vocabulary terms from localStorage
+ * Get all vocabulary terms. Prefers in-memory cache (from server sync),
+ * then falls back to localStorage.
  */
 export function getVocabulary(): VocabularyTerm[] {
+  if (memoryCache !== null) {
+    return [...memoryCache].sort((a, b) => b.createdAt - a.createdAt);
+  }
+
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return [];
     const entries = JSON.parse(stored) as VocabularyTerm[];
-    // Return newest first
     return entries.sort((a, b) => b.createdAt - a.createdAt);
   } catch {
     return [];
@@ -49,13 +59,28 @@ export function getVocabulary(): VocabularyTerm[] {
 }
 
 /**
- * Save vocabulary to localStorage
+ * Set vocabulary directly (used by settings sync from server data).
+ */
+export function setVocabulary(terms: VocabularyTerm[]): void {
+  memoryCache = terms.slice(0, MAX_TERMS);
+}
+
+/**
+ * Reset memory cache (for testing only)
+ */
+export function resetMemoryCache(): void {
+  memoryCache = null;
+}
+
+/**
+ * Save vocabulary (updates memory cache and tries localStorage)
  */
 function saveVocabulary(terms: VocabularyTerm[]): void {
+  memoryCache = terms;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(terms));
   } catch {
-    // localStorage full or unavailable - silently fail
+    // localStorage full or unavailable - memory cache still updated
   }
 }
 
@@ -141,12 +166,13 @@ export function deleteTerm(id: string): void {
  * Clear all vocabulary
  */
 export function clearVocabulary(): void {
+  memoryCache = [];
   try {
     localStorage.removeItem(STORAGE_KEY);
-    events.emit("settings:changed", { setting: "vocabulary" });
   } catch {
     // Silently fail
   }
+  events.emit("settings:changed", { setting: "vocabulary" });
 }
 
 /**
@@ -165,20 +191,24 @@ export function isAtVocabularyLimit(): boolean {
 
 export const vocabularyStore: {
   getVocabulary: typeof getVocabulary;
+  setVocabulary: typeof setVocabulary;
   addTerm: typeof addTerm;
   deleteTerm: typeof deleteTerm;
   clearVocabulary: typeof clearVocabulary;
   getVocabularyCount: typeof getVocabularyCount;
   isAtVocabularyLimit: typeof isAtVocabularyLimit;
+  resetMemoryCache: typeof resetMemoryCache;
   MAX_TERMS: typeof MAX_TERMS;
   MAX_TERM_LENGTH: typeof MAX_TERM_LENGTH;
 } = {
   getVocabulary,
+  setVocabulary,
   addTerm,
   deleteTerm,
   clearVocabulary,
   getVocabularyCount,
   isAtVocabularyLimit,
+  resetMemoryCache,
   MAX_TERMS,
   MAX_TERM_LENGTH,
 };

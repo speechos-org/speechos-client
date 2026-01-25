@@ -7,20 +7,22 @@ import {
   getConfig,
   getSettingsToken,
   clearSettingsToken,
+  getFetchHandler,
   events,
+  type FetchOptions,
+  type FetchResponse,
 } from "@speechos/core";
 import {
   getLanguageSettings,
-  setInputLanguageCode,
-  setOutputLanguageCode,
-  setSmartFormatEnabled,
+  setLanguageSettings,
 } from "./stores/language-settings.js";
 import {
   getVocabulary,
+  setVocabulary,
   type VocabularyTerm,
 } from "./stores/vocabulary-store.js";
-import { getSnippets, type Snippet } from "./stores/snippets-store.js";
-import { getTranscripts } from "./stores/transcript-store.js";
+import { getSnippets, setSnippets, type Snippet } from "./stores/snippets-store.js";
+import { getTranscripts, setTranscripts } from "./stores/transcript-store.js";
 
 // Sync debounce delay in milliseconds
 const SYNC_DEBOUNCE_MS = 2000;
@@ -31,11 +33,6 @@ const MAX_RETRIES = 3;
 // Base retry delay in milliseconds (exponential backoff)
 const BASE_RETRY_DELAY_MS = 2000;
 
-// localStorage keys for storing synced data (used to detect local changes)
-const VOCABULARY_STORAGE_KEY = "speechos_vocabulary";
-const SNIPPETS_STORAGE_KEY = "speechos_snippets";
-const LANGUAGE_STORAGE_KEY = "speechos_language_settings";
-const HISTORY_STORAGE_KEY = "speechos_transcripts";
 
 /**
  * Synced history entry (excludes commandConfig to reduce payload size)
@@ -76,6 +73,30 @@ class SettingsSync {
   private unsubscribe: (() => void) | null = null;
   /** When true, sync is disabled due to CSP or network restrictions */
   private syncDisabled = false;
+
+  /**
+   * Make a fetch request using custom fetchHandler if configured, otherwise native fetch.
+   * This allows the Chrome extension to route fetch traffic through the service worker
+   * to bypass page CSP restrictions.
+   */
+  private async doFetch(url: string, options: FetchOptions): Promise<FetchResponse> {
+    const config = getConfig();
+    const customHandler = getFetchHandler();
+
+    if (customHandler) {
+      if (config.debug) {
+        console.log("[SpeechOS] Using custom fetch handler (extension proxy)", options.method, url);
+      }
+      return customHandler(url, options);
+    }
+
+    if (config.debug) {
+      console.log("[SpeechOS] Using native fetch", options.method, url);
+    }
+    // Use native fetch and wrap response to match FetchResponse interface
+    const response = await fetch(url, options);
+    return response;
+  }
 
   /**
    * Initialize the settings sync manager
@@ -132,13 +153,17 @@ class SettingsSync {
     const config = getConfig();
 
     try {
-      const response = await fetch(`${config.host}/api/user-settings/`, {
+      const response = await this.doFetch(`${config.host}/api/user-settings/`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
+
+      if (config.debug) {
+        console.log("[SpeechOS] Settings fetch response:", response.status, response.ok ? "OK" : response.statusText);
+      }
 
       if (response.status === 404) {
         // No settings on server yet (new user) - sync local settings to server
@@ -159,12 +184,26 @@ class SettingsSync {
         throw new Error(`Server returned ${response.status}`);
       }
 
-      const serverSettings: ServerSettings = await response.json();
+      const serverSettings = (await response.json()) as ServerSettings;
+
+      if (config.debug) {
+        console.log("[SpeechOS] Settings received from server:", {
+          language: serverSettings.language,
+          vocabularyCount: serverSettings.vocabulary?.length ?? 0,
+          snippetsCount: serverSettings.snippets?.length ?? 0,
+          historyCount: serverSettings.history?.length ?? 0,
+          lastSyncedAt: serverSettings.lastSyncedAt,
+        });
+        if (serverSettings.history?.length > 0) {
+          console.log("[SpeechOS] History entries:", serverSettings.history);
+        }
+      }
+
       this.mergeSettings(serverSettings);
       events.emit("settings:loaded", undefined);
 
       if (config.debug) {
-        console.log("[SpeechOS] Settings loaded from server");
+        console.log("[SpeechOS] Settings merged and loaded");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -185,80 +224,31 @@ class SettingsSync {
   }
 
   /**
-   * Merge server settings with local (server wins, except deviceId)
+   * Merge server settings with local (server wins).
+   * Uses store setters to update memory cache - localStorage is a fallback.
    */
   private mergeSettings(serverSettings: ServerSettings): void {
     // Language settings - server wins
     if (serverSettings.language) {
-      const lang = serverSettings.language;
-      // Directly update localStorage to avoid triggering sync events
-      this.updateLanguageSettingsDirectly(lang);
+      setLanguageSettings(serverSettings.language);
     }
 
     // Vocabulary - server wins
     if (serverSettings.vocabulary) {
-      this.updateVocabularyDirectly(serverSettings.vocabulary);
+      setVocabulary(serverSettings.vocabulary);
     }
 
     // Snippets - server wins
     if (serverSettings.snippets) {
-      this.updateSnippetsDirectly(serverSettings.snippets);
+      setSnippets(serverSettings.snippets);
     }
 
     // History - server wins
     if (serverSettings.history) {
-      this.updateHistoryDirectly(serverSettings.history);
+      setTranscripts(serverSettings.history);
     }
   }
 
-  /**
-   * Update language settings directly in localStorage without triggering events
-   */
-  private updateLanguageSettingsDirectly(lang: ServerSettings["language"]): void {
-    try {
-      const settings = {
-        inputLanguageCode: lang.inputLanguageCode,
-        outputLanguageCode: lang.outputLanguageCode,
-        smartFormat: lang.smartFormat,
-      };
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, JSON.stringify(settings));
-    } catch {
-      // localStorage unavailable
-    }
-  }
-
-  /**
-   * Update vocabulary directly in localStorage without triggering events
-   */
-  private updateVocabularyDirectly(vocabulary: VocabularyTerm[]): void {
-    try {
-      localStorage.setItem(VOCABULARY_STORAGE_KEY, JSON.stringify(vocabulary));
-    } catch {
-      // localStorage unavailable
-    }
-  }
-
-  /**
-   * Update snippets directly in localStorage without triggering events
-   */
-  private updateSnippetsDirectly(snippets: Snippet[]): void {
-    try {
-      localStorage.setItem(SNIPPETS_STORAGE_KEY, JSON.stringify(snippets));
-    } catch {
-      // localStorage unavailable
-    }
-  }
-
-  /**
-   * Update history directly in localStorage without triggering events
-   */
-  private updateHistoryDirectly(history: SyncedHistoryEntry[]): void {
-    try {
-      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } catch {
-      // localStorage unavailable
-    }
-  }
 
   /**
    * Schedule a debounced sync to server
@@ -327,7 +317,7 @@ class SettingsSync {
         })),
       };
 
-      const response = await fetch(`${config.host}/api/user-settings/`, {
+      const response = await this.doFetch(`${config.host}/api/user-settings/`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,

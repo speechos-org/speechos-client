@@ -26,6 +26,12 @@ const STORAGE_KEY = "speechos_transcripts";
 const MAX_ENTRIES = 50;
 
 /**
+ * In-memory cache for transcripts. When server sync is enabled, this is the
+ * source of truth. localStorage is only used when server sync is disabled.
+ */
+let memoryCache: TranscriptEntry[] | null = null;
+
+/**
  * Generate a unique ID for transcript entries
  */
 function generateId(): string {
@@ -33,18 +39,39 @@ function generateId(): string {
 }
 
 /**
- * Get all transcripts from localStorage
+ * Get all transcripts. Prefers in-memory cache (from server sync),
+ * then falls back to localStorage.
  */
 export function getTranscripts(): TranscriptEntry[] {
+  // If we have in-memory data (from server sync), use it
+  if (memoryCache !== null) {
+    return [...memoryCache].sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  // Fall back to localStorage (when server sync is disabled)
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return [];
     const entries = JSON.parse(stored) as TranscriptEntry[];
-    // Return newest first
     return entries.sort((a, b) => b.timestamp - a.timestamp);
   } catch {
     return [];
   }
+}
+
+/**
+ * Set transcripts directly (used by settings sync from server data).
+ * Server data is the source of truth - just update memory cache.
+ */
+export function setTranscripts(entries: TranscriptEntry[]): void {
+  memoryCache = entries.slice(0, MAX_ENTRIES);
+}
+
+/**
+ * Reset memory cache (for testing only)
+ */
+export function resetMemoryCache(): void {
+  memoryCache = null;
 }
 
 /**
@@ -93,13 +120,18 @@ export function saveTranscript(
   // Prune to max entries
   const pruned = entries.slice(0, MAX_ENTRIES);
 
+  // Update memory cache (always)
+  memoryCache = pruned;
+
+  // Try to persist to localStorage (for when server sync is disabled)
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
-    // Emit settings change event to trigger sync
-    events.emit("settings:changed", { setting: "history" });
   } catch {
-    // localStorage full or unavailable - silently fail
+    // Quota exceeded - memory cache is still updated
   }
+
+  // Emit settings change event to trigger sync
+  events.emit("settings:changed", { setting: "history" });
 
   return entry;
 }
@@ -108,13 +140,13 @@ export function saveTranscript(
  * Clear all transcript history
  */
 export function clearTranscripts(): void {
+  memoryCache = [];
   try {
     localStorage.removeItem(STORAGE_KEY);
-    // Emit settings change event to trigger sync
-    events.emit("settings:changed", { setting: "history" });
   } catch {
     // Silently fail
   }
+  events.emit("settings:changed", { setting: "history" });
 }
 
 /**
@@ -122,23 +154,25 @@ export function clearTranscripts(): void {
  */
 export function deleteTranscript(id: string): void {
   const entries = getTranscripts().filter((e) => e.id !== id);
+  memoryCache = entries;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-    // Emit settings change event to trigger sync
-    events.emit("settings:changed", { setting: "history" });
   } catch {
     // Silently fail
   }
+  events.emit("settings:changed", { setting: "history" });
 }
 
 export const transcriptStore: {
   getTranscripts: typeof getTranscripts;
+  setTranscripts: typeof setTranscripts;
   saveTranscript: typeof saveTranscript;
   clearTranscripts: typeof clearTranscripts;
   deleteTranscript: typeof deleteTranscript;
 } = {
-  getTranscripts: getTranscripts,
-  saveTranscript: saveTranscript,
-  clearTranscripts: clearTranscripts,
-  deleteTranscript: deleteTranscript,
+  getTranscripts,
+  setTranscripts,
+  saveTranscript,
+  clearTranscripts,
+  deleteTranscript,
 };

@@ -9,13 +9,15 @@ import {
   saveTranscript,
   clearTranscripts,
   deleteTranscript,
+  resetMemoryCache,
   type TranscriptEntry,
 } from "./transcript-store.js";
 
 describe("TranscriptStore", () => {
   beforeEach(() => {
-    // Clear localStorage before each test
+    // Clear localStorage and memory cache before each test
     localStorage.clear();
+    resetMemoryCache();
     vi.clearAllMocks();
   });
 

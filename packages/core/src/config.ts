@@ -2,7 +2,7 @@
  * Configuration management for SpeechOS Core SDK
  */
 
-import type { SpeechOSCoreConfig, WebSocketFactory } from "./types.js";
+import type { SpeechOSCoreConfig, WebSocketFactory, FetchHandler } from "./types.js";
 
 /**
  * Default host - can be overridden by SPEECHOS_HOST env var at build time
@@ -21,6 +21,8 @@ interface ResolvedConfig {
   debug: boolean;
   /** Custom WebSocket factory (undefined means use native WebSocket) */
   webSocketFactory: WebSocketFactory | undefined;
+  /** Custom fetch handler (undefined means use native fetch) */
+  fetchHandler: FetchHandler | undefined;
   /** JWT token for server-side settings persistence (undefined means no sync) */
   settingsToken: string | undefined;
 }
@@ -34,6 +36,7 @@ const defaultConfig: ResolvedConfig = {
   host: DEFAULT_HOST,
   debug: false,
   webSocketFactory: undefined,
+  fetchHandler: undefined,
   settingsToken: undefined,
 };
 
@@ -56,6 +59,7 @@ export function validateConfig(userConfig: SpeechOSCoreConfig): ResolvedConfig {
     host: userConfig.host ?? defaultConfig.host,
     debug: userConfig.debug ?? defaultConfig.debug,
     webSocketFactory: userConfig.webSocketFactory ?? defaultConfig.webSocketFactory,
+    fetchHandler: userConfig.fetchHandler ?? defaultConfig.fetchHandler,
     settingsToken: userConfig.settingsToken ?? defaultConfig.settingsToken,
   };
 }
@@ -108,6 +112,14 @@ export function getSettingsToken(): string | undefined {
  */
 export function clearSettingsToken(): void {
   currentConfig = { ...currentConfig, settingsToken: undefined };
+}
+
+/**
+ * Get the fetch handler from the current configuration
+ * @returns The fetch handler or undefined if not configured
+ */
+export function getFetchHandler(): FetchHandler | undefined {
+  return currentConfig.fetchHandler;
 }
 
 /**

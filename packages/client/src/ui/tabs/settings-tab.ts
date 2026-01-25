@@ -4,6 +4,7 @@
 
 import { LitElement, html, css, type CSSResultGroup } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { events } from "@speechos/core";
 import { themeStyles } from "../styles/theme.js";
 import { globeIcon, micIcon, sparklesIcon } from "../icons.js";
 import {
@@ -220,16 +221,26 @@ export class SpeechOSSettingsTab extends LitElement {
   private smartFormatEnabled: boolean = true;
 
   private savedIndicatorTimeout: ReturnType<typeof setTimeout> | null = null;
+  private unsubscribeSettingsLoaded: (() => void) | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
     this.loadSettings();
+
+    // Refresh when settings are loaded from the server
+    this.unsubscribeSettingsLoaded = events.on("settings:loaded", () => {
+      this.loadSettings();
+    });
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     if (this.savedIndicatorTimeout) {
       clearTimeout(this.savedIndicatorTimeout);
+    }
+    if (this.unsubscribeSettingsLoaded) {
+      this.unsubscribeSettingsLoaded();
+      this.unsubscribeSettingsLoaded = null;
     }
     this.isTestingMic = false;
   }

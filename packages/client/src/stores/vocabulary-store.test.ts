@@ -11,12 +11,14 @@ import {
   clearVocabulary,
   getVocabularyCount,
   isAtVocabularyLimit,
+  resetMemoryCache,
   type VocabularyTerm,
 } from "./vocabulary-store.js";
 
 describe("VocabularyStore", () => {
   beforeEach(() => {
     localStorage.clear();
+    resetMemoryCache();
     vi.clearAllMocks();
   });
 

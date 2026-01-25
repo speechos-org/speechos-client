@@ -10,6 +10,9 @@ import { css, type CSSResult } from 'lit';
  */
 export const themeStyles: CSSResult = css`
   :host {
+    /* Font stack - system fonts for consistent rendering across sites */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+
     /* Color tokens */
     --speechos-primary: #10B981;
     --speechos-primary-hover: #059669;

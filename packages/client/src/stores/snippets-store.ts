@@ -10,6 +10,12 @@ const MAX_SNIPPETS = 25;
 const MAX_TRIGGER_LENGTH = 30;
 const MAX_EXPANSION_LENGTH = 300;
 
+/**
+ * In-memory cache for snippets. When server sync is enabled, this is the
+ * source of truth. localStorage is only used when server sync is disabled.
+ */
+let memoryCache: Snippet[] | null = null;
+
 export interface Snippet {
   id: string;
   /** Trigger phrase spoken to activate the snippet (max 30 chars) */
@@ -37,14 +43,18 @@ function generateId(): string {
 }
 
 /**
- * Get all snippets from localStorage
+ * Get all snippets. Prefers in-memory cache (from server sync),
+ * then falls back to localStorage.
  */
 export function getSnippets(): Snippet[] {
+  if (memoryCache !== null) {
+    return [...memoryCache].sort((a, b) => b.createdAt - a.createdAt);
+  }
+
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return [];
     const entries = JSON.parse(stored) as Snippet[];
-    // Return newest first
     return entries.sort((a, b) => b.createdAt - a.createdAt);
   } catch {
     return [];
@@ -52,13 +62,28 @@ export function getSnippets(): Snippet[] {
 }
 
 /**
- * Save snippets to localStorage
+ * Set snippets directly (used by settings sync from server data).
+ */
+export function setSnippets(snippets: Snippet[]): void {
+  memoryCache = snippets.slice(0, MAX_SNIPPETS);
+}
+
+/**
+ * Reset memory cache (for testing only)
+ */
+export function resetMemoryCache(): void {
+  memoryCache = null;
+}
+
+/**
+ * Save snippets (updates memory cache and tries localStorage)
  */
 function saveSnippets(snippets: Snippet[]): void {
+  memoryCache = snippets;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snippets));
   } catch {
-    // localStorage full or unavailable - silently fail
+    // localStorage full or unavailable - memory cache still updated
   }
 }
 
@@ -215,12 +240,13 @@ export function deleteSnippet(id: string): void {
  * Clear all snippets
  */
 export function clearSnippets(): void {
+  memoryCache = [];
   try {
     localStorage.removeItem(STORAGE_KEY);
-    events.emit("settings:changed", { setting: "snippets" });
   } catch {
     // Silently fail
   }
+  events.emit("settings:changed", { setting: "snippets" });
 }
 
 /**
@@ -239,23 +265,27 @@ export function isAtSnippetLimit(): boolean {
 
 export const snippetsStore: {
   getSnippets: typeof getSnippets;
+  setSnippets: typeof setSnippets;
   addSnippet: typeof addSnippet;
   updateSnippet: typeof updateSnippet;
   deleteSnippet: typeof deleteSnippet;
   clearSnippets: typeof clearSnippets;
   getSnippetCount: typeof getSnippetCount;
   isAtSnippetLimit: typeof isAtSnippetLimit;
+  resetMemoryCache: typeof resetMemoryCache;
   MAX_SNIPPETS: typeof MAX_SNIPPETS;
   MAX_TRIGGER_LENGTH: typeof MAX_TRIGGER_LENGTH;
   MAX_EXPANSION_LENGTH: typeof MAX_EXPANSION_LENGTH;
 } = {
   getSnippets,
+  setSnippets,
   addSnippet,
   updateSnippet,
   deleteSnippet,
   clearSnippets,
   getSnippetCount,
   isAtSnippetLimit,
+  resetMemoryCache,
   MAX_SNIPPETS,
   MAX_TRIGGER_LENGTH,
   MAX_EXPANSION_LENGTH,

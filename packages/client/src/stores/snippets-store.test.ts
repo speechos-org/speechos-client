@@ -12,12 +12,14 @@ import {
   clearSnippets,
   getSnippetCount,
   isAtSnippetLimit,
+  resetMemoryCache,
   type Snippet,
 } from "./snippets-store.js";
 
 describe("SnippetsStore", () => {
   beforeEach(() => {
     localStorage.clear();
+    resetMemoryCache();
     vi.clearAllMocks();
   });
 

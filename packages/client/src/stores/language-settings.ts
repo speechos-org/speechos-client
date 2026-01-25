@@ -7,6 +7,12 @@ import { events } from "@speechos/core";
 
 const STORAGE_KEY = "speechos_language_settings";
 
+/**
+ * In-memory cache for language settings. When server sync is enabled, this is the
+ * source of truth. localStorage is only used when server sync is disabled.
+ */
+let memoryCache: LanguageSettings | null = null;
+
 export interface LanguageOption {
   /** Display name of the language */
   name: string;
@@ -78,9 +84,14 @@ const defaultSettings: LanguageSettings = {
 };
 
 /**
- * Get current language settings from localStorage
+ * Get current language settings. Prefers in-memory cache (from server sync),
+ * then falls back to localStorage.
  */
 export function getLanguageSettings(): LanguageSettings {
+  if (memoryCache !== null) {
+    return { ...memoryCache };
+  }
+
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return { ...defaultSettings };
@@ -91,13 +102,28 @@ export function getLanguageSettings(): LanguageSettings {
 }
 
 /**
- * Save language settings to localStorage
+ * Set language settings directly (used by settings sync from server data).
+ */
+export function setLanguageSettings(settings: Partial<LanguageSettings>): void {
+  memoryCache = { ...defaultSettings, ...settings };
+}
+
+/**
+ * Reset memory cache (for testing only)
+ */
+export function resetMemoryCache(): void {
+  memoryCache = null;
+}
+
+/**
+ * Save language settings (updates memory cache and tries localStorage)
  */
 function saveLanguageSettings(settings: LanguageSettings): void {
+  memoryCache = settings;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch {
-    // localStorage full or unavailable - silently fail
+    // localStorage full or unavailable - memory cache still updated
   }
 }
 
@@ -216,6 +242,7 @@ export function getLanguageName(): string {
  * Reset language settings to defaults
  */
 export function resetLanguageSettings(): void {
+  memoryCache = null;
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {
@@ -225,6 +252,7 @@ export function resetLanguageSettings(): void {
 
 export const languageSettings: {
   getLanguageSettings: typeof getLanguageSettings;
+  setLanguageSettings: typeof setLanguageSettings;
   getInputLanguageCode: typeof getInputLanguageCode;
   setInputLanguageCode: typeof setInputLanguageCode;
   getOutputLanguageCode: typeof getOutputLanguageCode;
@@ -235,6 +263,7 @@ export const languageSettings: {
   getSmartFormatEnabled: typeof getSmartFormatEnabled;
   setSmartFormatEnabled: typeof setSmartFormatEnabled;
   resetLanguageSettings: typeof resetLanguageSettings;
+  resetMemoryCache: typeof resetMemoryCache;
   SUPPORTED_LANGUAGES: typeof SUPPORTED_LANGUAGES;
   // Legacy aliases
   getLanguageCode: typeof getLanguageCode;
@@ -242,6 +271,7 @@ export const languageSettings: {
   getLanguageName: typeof getLanguageName;
 } = {
   getLanguageSettings,
+  setLanguageSettings,
   getInputLanguageCode,
   setInputLanguageCode,
   getOutputLanguageCode,
@@ -252,6 +282,7 @@ export const languageSettings: {
   getSmartFormatEnabled,
   setSmartFormatEnabled,
   resetLanguageSettings,
+  resetMemoryCache,
   SUPPORTED_LANGUAGES,
   // Legacy aliases
   getLanguageCode,

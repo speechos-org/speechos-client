@@ -11,6 +11,8 @@ export const modalLayoutStyles = css`
     inset: 0;
     pointer-events: none;
     z-index: calc(var(--speechos-z-base) + 100);
+    /* Ensure consistent font rendering across all sites */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   }
 
   .modal-overlay {

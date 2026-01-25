@@ -5,6 +5,7 @@ import {
   resetConfig,
   updateUserId,
   validateConfig,
+  getFetchHandler,
   DEFAULT_HOST,
 } from "./config.js";
 
@@ -179,6 +180,76 @@ describe("config", () => {
       expect(config.host).toBe(DEFAULT_HOST);
       expect(config.userId).toBe("");
       expect(config.debug).toBe(false);
+    });
+  });
+
+  describe("fetchHandler", () => {
+    it("should default to undefined when not provided", () => {
+      setConfig({ apiKey: "test-key" });
+
+      const config = getConfig();
+      expect(config.fetchHandler).toBeUndefined();
+    });
+
+    it("should store fetchHandler when provided", () => {
+      const mockHandler = vi.fn();
+      setConfig({
+        apiKey: "test-key",
+        fetchHandler: mockHandler,
+      });
+
+      const config = getConfig();
+      expect(config.fetchHandler).toBe(mockHandler);
+    });
+
+    it("should reset fetchHandler to undefined on resetConfig", () => {
+      const mockHandler = vi.fn();
+      setConfig({
+        apiKey: "test-key",
+        fetchHandler: mockHandler,
+      });
+
+      resetConfig();
+      const config = getConfig();
+      expect(config.fetchHandler).toBeUndefined();
+    });
+
+    it("should validate config with fetchHandler", () => {
+      const mockHandler = vi.fn();
+      const result = validateConfig({
+        apiKey: "test-key",
+        fetchHandler: mockHandler,
+      });
+
+      expect(result.fetchHandler).toBe(mockHandler);
+      expect(result.apiKey).toBe("test-key");
+    });
+
+    it("should allow fetchHandler without other optional fields", () => {
+      const mockHandler = vi.fn();
+      setConfig({
+        apiKey: "test-key",
+        fetchHandler: mockHandler,
+      });
+
+      const config = getConfig();
+      expect(config.fetchHandler).toBe(mockHandler);
+      expect(config.host).toBe(DEFAULT_HOST);
+      expect(config.userId).toBe("");
+      expect(config.debug).toBe(false);
+    });
+  });
+
+  describe("getFetchHandler", () => {
+    it("should return undefined when not configured", () => {
+      setConfig({ apiKey: "test-key" });
+      expect(getFetchHandler()).toBeUndefined();
+    });
+
+    it("should return the configured fetchHandler", () => {
+      const mockHandler = vi.fn();
+      setConfig({ apiKey: "test-key", fetchHandler: mockHandler });
+      expect(getFetchHandler()).toBe(mockHandler);
     });
   });
 });

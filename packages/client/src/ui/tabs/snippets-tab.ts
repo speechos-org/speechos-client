@@ -4,6 +4,7 @@
 
 import { LitElement, html, css, type CSSResultGroup } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { events } from "@speechos/core";
 import { themeStyles } from "../styles/theme.js";
 import { tabContentStyles, formStyles } from "../styles/modal-styles.js";
 import { scissorsIcon, plusIcon, xIcon, infoIcon, editIcon } from "../icons.js";
@@ -131,9 +132,24 @@ export class SpeechOSSnippetsTab extends LitElement {
   @state()
   private error: string = "";
 
+  private unsubscribeSettingsLoaded: (() => void) | null = null;
+
   connectedCallback(): void {
     super.connectedCallback();
     this.loadSnippets();
+
+    // Refresh when settings are loaded from the server
+    this.unsubscribeSettingsLoaded = events.on("settings:loaded", () => {
+      this.loadSnippets();
+    });
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this.unsubscribeSettingsLoaded) {
+      this.unsubscribeSettingsLoaded();
+      this.unsubscribeSettingsLoaded = null;
+    }
   }
 
   /** Reload snippets from store */

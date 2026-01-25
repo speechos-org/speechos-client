@@ -15,6 +15,7 @@ import {
   trashIcon,
 } from "../icons.js";
 import { transcriptStore, type TranscriptEntry } from "../../stores/transcript-store.js";
+import { events } from "@speechos/core";
 
 @customElement("speechos-history-tab")
 export class SpeechOSHistoryTab extends LitElement {
@@ -173,9 +174,24 @@ export class SpeechOSHistoryTab extends LitElement {
   @state()
   private transcripts: TranscriptEntry[] = [];
 
+  private unsubscribeSettingsLoaded: (() => void) | null = null;
+
   connectedCallback(): void {
     super.connectedCallback();
     this.loadTranscripts();
+
+    // Refresh when settings are loaded from the server (history may have changed)
+    this.unsubscribeSettingsLoaded = events.on("settings:loaded", () => {
+      this.loadTranscripts();
+    });
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this.unsubscribeSettingsLoaded) {
+      this.unsubscribeSettingsLoaded();
+      this.unsubscribeSettingsLoaded = null;
+    }
   }
 
   /** Reload transcripts from store */
