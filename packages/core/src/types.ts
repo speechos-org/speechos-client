@@ -50,6 +50,13 @@ export interface SpeechOSCoreConfig {
    * If not provided, uses the native WebSocket constructor.
    */
   webSocketFactory?: WebSocketFactory;
+
+  /**
+   * JWT token for server-side settings persistence.
+   * When provided, user settings (language, vocabulary, snippets) are synced to the server.
+   * Generate this token server-side via POST /api/user-settings-token/ with your UserAPIKey.
+   */
+  settingsToken?: string;
 }
 
 /**
@@ -268,6 +275,18 @@ export interface SpeechOSEventMap {
     /** Type of setting that changed */
     setting: "language" | "snippets" | "vocabulary" | "smartFormat";
   };
+
+  // ============================================
+  // Settings sync events
+  // ============================================
+  /** Emitted when settings are loaded from the server */
+  "settings:loaded": void;
+  /** Emitted when settings are synced to the server */
+  "settings:synced": void;
+  /** Emitted when settings sync fails */
+  "settings:syncFailed": { error: string };
+  /** Emitted when the settings token expires (user should request a new one) */
+  "settings:tokenExpired": void;
 
   // ============================================
   // Error events

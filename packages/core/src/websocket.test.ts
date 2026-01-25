@@ -527,7 +527,7 @@ describe('WebSocket factory', () => {
       this.requestData = vi.fn();
       return this;
     });
-    MockMediaRecorder.isTypeSupported = vi.fn().mockReturnValue(true);
+    (MockMediaRecorder as unknown as typeof MediaRecorder).isTypeSupported = vi.fn().mockReturnValue(true);
     vi.stubGlobal('MediaRecorder', MockMediaRecorder);
   }
 

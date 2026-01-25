@@ -28,6 +28,7 @@ import {
 import { getSnippets } from "./stores/snippets-store.js";
 import { getVocabulary } from "./stores/vocabulary-store.js";
 import { getAudioDeviceId } from "./stores/audio-settings.js";
+import { settingsSync } from "./settings-sync.js";
 import "./ui/index.js"; // Auto-registers components
 
 /**
@@ -119,6 +120,14 @@ export class SpeechOS {
 
     this.isInitialized = true;
 
+    // Initialize settings sync if token is configured
+    // This loads settings from server and subscribes to changes
+    settingsSync.init().catch((error) => {
+      if (finalConfig.debug) {
+        console.warn("[SpeechOS] Settings sync initialization failed:", error);
+      }
+    });
+
     // Log initialization in debug mode
     if (finalConfig.debug) {
       console.log("[SpeechOS] Initialized with config:", finalConfig);
@@ -157,6 +166,9 @@ export class SpeechOS {
 
     // Reset text input handler to default
     resetTextInputHandler();
+
+    // Stop settings sync
+    settingsSync.destroy();
 
     // Clear instance
     this.instance = null;

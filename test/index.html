@@ -612,6 +612,15 @@
         </p>
       </div>
       <div class="form-group">
+        <label for="settings-token-input">Settings Token (optional)</label>
+        <input type="text" id="settings-token-input" placeholder="JWT token for server-side settings sync..."
+          style="font-family: 'Monaco', 'Menlo', 'Courier New', monospace; font-size: 13px;">
+        <p style="margin-top: 4px; color: #666; font-size: 12px;">
+          Enables cross-device sync of user settings (language, vocabulary, snippets).
+          Generate via <code>POST /api/user-settings-token/</code> with your User API Key.
+        </p>
+      </div>
+      <div class="form-group">
         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
           <input type="checkbox" id="always-visible-input" style="width: 18px; height: 18px; cursor: pointer;">
           <span>Always Visible</span>
@@ -623,6 +632,63 @@
       <div class="test-buttons">
         <button onclick="initializeWidget()" style="background: #28a745;">Initialize SDK</button>
         <button onclick="identifyUser()" style="background: #17a2b8;">Identify User</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔄 Settings Sync</h2>
+      <div class="instruction-box">
+        <strong>📱 Cross-Device Settings Sync:</strong>
+        <p>
+          When a Settings Token is provided, user settings (language preferences, vocabulary, snippets)
+          are automatically synced to the server. This allows settings to persist across devices and browsers.
+        </p>
+      </div>
+
+      <!-- Token Generator -->
+      <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+        <strong style="display: block; margin-bottom: 12px; color: #333;">🔑 Generate Settings Token</strong>
+        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">
+          Settings tokens require a <strong>User API Key</strong> (not a Client API Key).
+          Get your User API Key from the dashboard under API Keys.
+        </p>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="user-api-key-input" style="font-size: 13px;">User API Key</label>
+          <input type="password" id="user-api-key-input" placeholder="Enter your User API Key (starts with 'speechos_')..."
+            style="font-family: 'Monaco', 'Menlo', 'Courier New', monospace; font-size: 12px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="token-user-id-input" style="font-size: 13px;">User Identifier (for token)</label>
+          <input type="text" id="token-user-id-input" placeholder="e.g., user_123 (defaults to User ID above)"
+            style="font-family: 'Monaco', 'Menlo', 'Courier New', monospace; font-size: 12px;">
+        </div>
+        <div class="test-buttons" style="margin-bottom: 0;">
+          <button onclick="generateSettingsToken()" style="background: #6f42c1;">Generate Token</button>
+        </div>
+        <div id="token-generation-result" style="display: none; margin-top: 12px; padding: 12px; background: #d4edda; border-radius: 6px;">
+          <strong style="color: #155724; font-size: 12px;">Generated Token:</strong>
+          <input type="text" id="generated-token-display" readonly
+            style="width: 100%; margin-top: 8px; font-family: 'Monaco', 'Menlo', 'Courier New', monospace; font-size: 11px; padding: 8px; border: 1px solid #c3e6cb; border-radius: 4px;">
+          <button onclick="copyAndUseToken()" style="margin-top: 8px; background: #28a745; font-size: 12px; padding: 8px 16px;">
+            Copy & Use Token
+          </button>
+        </div>
+      </div>
+
+      <div class="info-card" id="settings-sync-status">
+        <strong>Sync Status</strong>
+        <p style="margin-top: 8px; color: #666; font-size: 14px;" id="settings-sync-status-text">
+          Initialize SDK with a settings token to enable sync.
+        </p>
+      </div>
+      <div class="test-buttons">
+        <button onclick="checkSettingsSync()" style="background: #6c757d;">Check Sync Status</button>
+        <button onclick="forceSettingsSync()" style="background: #fd7e14;">Force Sync to Server</button>
+        <button onclick="loadSettingsFromServer()" style="background: #20c997;">Load from Server</button>
+      </div>
+      <div style="margin-top: 16px;">
+        <label style="font-weight: 600; font-size: 14px; color: #333; margin-bottom: 8px; display: block;">Current Local Settings:</label>
+        <div class="console-output" id="settings-display" style="max-height: 200px;"></div>
       </div>
     </div>
 
@@ -953,9 +1019,20 @@
           logToConsole('Always Visible mode enabled', 'info');
         }
 
+        // Get Settings Token from input field (optional)
+        const settingsTokenInput = document.getElementById('settings-token-input');
+        const settingsToken = settingsTokenInput.value.trim();
+        if (settingsToken) {
+          localStorage.setItem('speechos-settings-token', settingsToken);
+          logToConsole('Settings Token configured - sync enabled', 'info');
+        } else {
+          localStorage.removeItem('speechos-settings-token');
+        }
+
         window.SpeechOS.init({
           apiKey: apiKey,
           userId: userId || undefined,
+          settingsToken: settingsToken || undefined,
           debug: true,
           host: host,
           alwaysVisible: alwaysVisible,
@@ -1022,6 +1099,33 @@
           logToConsole(`⚡ Event: command:complete`, 'info');
           handleCommandResult(payload.command);
         });
+
+        // Settings sync events
+        window.SpeechOS.events.on('settings:loaded', () => {
+          logToConsole('🔄 Event: settings:loaded - Settings loaded from server', 'success');
+          updateSettingsSyncStatus('Settings loaded from server', 'success');
+          displayCurrentSettings();
+        });
+
+        window.SpeechOS.events.on('settings:synced', () => {
+          logToConsole('🔄 Event: settings:synced - Settings synced to server', 'success');
+          updateSettingsSyncStatus('Settings synced to server', 'success');
+        });
+
+        window.SpeechOS.events.on('settings:syncFailed', ({ error }) => {
+          logToConsole(`🔄 Event: settings:syncFailed - ${error}`, 'error');
+          updateSettingsSyncStatus(`Sync failed: ${error}`, 'error');
+        });
+
+        window.SpeechOS.events.on('settings:tokenExpired', () => {
+          logToConsole('🔄 Event: settings:tokenExpired - Token expired, sync disabled', 'error');
+          updateSettingsSyncStatus('Settings token expired - re-initialize with new token', 'error');
+        });
+
+        // Initial settings sync status check
+        if (settingsToken) {
+          checkSettingsSync();
+        }
 
       } catch (error) {
         logToConsole(`✗ Error initializing: ${error.message}`, 'error');
@@ -1130,9 +1234,213 @@
         document.getElementById('user-id-input').value = savedUserId;
       }
 
+      const savedSettingsToken = localStorage.getItem('speechos-settings-token');
+      if (savedSettingsToken) {
+        document.getElementById('settings-token-input').value = savedSettingsToken;
+      }
+
       const savedAlwaysVisible = localStorage.getItem('speechos-always-visible');
       if (savedAlwaysVisible === 'true') {
         document.getElementById('always-visible-input').checked = true;
+      }
+
+      // Load saved User API Key for settings sync
+      const savedUserApiKey = localStorage.getItem('speechos-user-api-key');
+      if (savedUserApiKey) {
+        document.getElementById('user-api-key-input').value = savedUserApiKey;
+      }
+    }
+
+    // ============================================
+    // Settings Sync Functions
+    // ============================================
+
+    async function generateSettingsToken() {
+      const userApiKeyInput = document.getElementById('user-api-key-input');
+      const userApiKey = userApiKeyInput.value.trim();
+
+      if (!userApiKey) {
+        logToConsole('✗ Please enter your User API Key', 'error');
+        userApiKeyInput.focus();
+        return;
+      }
+
+      // Save the User API Key for future sessions
+      localStorage.setItem('speechos-user-api-key', userApiKey);
+
+      // Get user identifier (default to User ID input if not specified)
+      const tokenUserIdInput = document.getElementById('token-user-id-input');
+      let userId = tokenUserIdInput.value.trim();
+      if (!userId) {
+        userId = document.getElementById('user-id-input').value.trim();
+      }
+      if (!userId) {
+        userId = 'test_user_' + Date.now();
+        logToConsole(`No user ID specified, using: ${userId}`, 'info');
+      }
+
+      const host = getHost();
+
+      try {
+        logToConsole(`Generating settings token for user: ${userId}...`, 'info');
+
+        const response = await fetch(`${host}/api/user-settings-token/`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Api-Key ${userApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ user_identifier: userId }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server returned ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        const token = data.token;
+
+        // Show the result
+        document.getElementById('token-generation-result').style.display = 'block';
+        document.getElementById('generated-token-display').value = token;
+
+        logToConsole(`✓ Token generated successfully!`, 'success');
+        logToConsole(`   Expires at: ${data.expires_at}`, 'info');
+        logToConsole(`   User: ${data.user_identifier}`, 'info');
+
+      } catch (error) {
+        logToConsole(`✗ Failed to generate token: ${error.message}`, 'error');
+        document.getElementById('token-generation-result').style.display = 'none';
+      }
+    }
+
+    function copyAndUseToken() {
+      const tokenDisplay = document.getElementById('generated-token-display');
+      const token = tokenDisplay.value;
+
+      if (!token) {
+        logToConsole('✗ No token to copy', 'error');
+        return;
+      }
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(token).then(() => {
+        logToConsole('✓ Token copied to clipboard', 'success');
+      }).catch(() => {
+        logToConsole('Failed to copy to clipboard', 'error');
+      });
+
+      // Also populate the settings token input
+      document.getElementById('settings-token-input').value = token;
+      localStorage.setItem('speechos-settings-token', token);
+      logToConsole('✓ Token applied to Settings Token field', 'success');
+      logToConsole('Re-initialize the SDK to use the new token', 'info');
+    }
+
+    function updateSettingsSyncStatus(message, type = 'info') {
+      const statusEl = document.getElementById('settings-sync-status-text');
+      statusEl.textContent = message;
+      statusEl.style.color = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#666';
+    }
+
+    function displayCurrentSettings() {
+      const displayEl = document.getElementById('settings-display');
+      try {
+        const settings = {
+          language: JSON.parse(localStorage.getItem('speechos_language_settings') || '{}'),
+          vocabulary: JSON.parse(localStorage.getItem('speechos_vocabulary') || '[]'),
+          snippets: JSON.parse(localStorage.getItem('speechos_snippets') || '[]'),
+        };
+        displayEl.textContent = JSON.stringify(settings, null, 2);
+      } catch (e) {
+        displayEl.textContent = 'Error reading settings: ' + e.message;
+      }
+    }
+
+    function checkSettingsSync() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      const settingsSync = window.SpeechOS.settingsSync;
+      if (!settingsSync) {
+        logToConsole('✗ settingsSync not available', 'error');
+        updateSettingsSyncStatus('settingsSync module not available', 'error');
+        return;
+      }
+
+      const isEnabled = settingsSync.isEnabled();
+      if (isEnabled) {
+        updateSettingsSyncStatus('Sync is ENABLED - settings will sync to server', 'success');
+        logToConsole('✓ Settings sync is enabled', 'success');
+      } else {
+        updateSettingsSyncStatus('Sync is DISABLED - no settings token configured', 'info');
+        logToConsole('Settings sync is disabled (no token)', 'info');
+      }
+
+      displayCurrentSettings();
+    }
+
+    async function forceSettingsSync() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      const settingsSync = window.SpeechOS.settingsSync;
+      if (!settingsSync) {
+        logToConsole('✗ settingsSync not available', 'error');
+        return;
+      }
+
+      if (!settingsSync.isEnabled()) {
+        logToConsole('✗ Settings sync not enabled - no token configured', 'error');
+        updateSettingsSyncStatus('Cannot sync - no settings token configured', 'error');
+        return;
+      }
+
+      try {
+        logToConsole('Syncing settings to server...', 'info');
+        updateSettingsSyncStatus('Syncing...', 'info');
+        await settingsSync.syncToServer();
+        updateSettingsSyncStatus('Settings synced to server!', 'success');
+        logToConsole('✓ Settings synced to server', 'success');
+      } catch (error) {
+        logToConsole(`✗ Sync failed: ${error.message}`, 'error');
+        updateSettingsSyncStatus(`Sync failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function loadSettingsFromServer() {
+      if (typeof window.SpeechOS === 'undefined') {
+        logToConsole('✗ SDK not loaded', 'error');
+        return;
+      }
+
+      const settingsSync = window.SpeechOS.settingsSync;
+      if (!settingsSync) {
+        logToConsole('✗ settingsSync not available', 'error');
+        return;
+      }
+
+      if (!settingsSync.isEnabled()) {
+        logToConsole('✗ Settings sync not enabled - no token configured', 'error');
+        updateSettingsSyncStatus('Cannot load - no settings token configured', 'error');
+        return;
+      }
+
+      try {
+        logToConsole('Loading settings from server...', 'info');
+        updateSettingsSyncStatus('Loading...', 'info');
+        await settingsSync.loadFromServer();
+        updateSettingsSyncStatus('Settings loaded from server!', 'success');
+        logToConsole('✓ Settings loaded from server', 'success');
+        displayCurrentSettings();
+      } catch (error) {
+        logToConsole(`✗ Load failed: ${error.message}`, 'error');
+        updateSettingsSyncStatus(`Load failed: ${error.message}`, 'error');
       }
     }
 

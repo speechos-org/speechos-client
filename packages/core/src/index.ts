@@ -17,6 +17,8 @@ export {
   resetConfig,
   updateUserId,
   validateConfig,
+  getSettingsToken,
+  clearSettingsToken,
   DEFAULT_HOST,
 } from "./config.js";
 export { livekit, Deferred } from "./livekit.js";

@@ -21,6 +21,8 @@ interface ResolvedConfig {
   debug: boolean;
   /** Custom WebSocket factory (undefined means use native WebSocket) */
   webSocketFactory: WebSocketFactory | undefined;
+  /** JWT token for server-side settings persistence (undefined means no sync) */
+  settingsToken: string | undefined;
 }
 
 /**
@@ -32,6 +34,7 @@ const defaultConfig: ResolvedConfig = {
   host: DEFAULT_HOST,
   debug: false,
   webSocketFactory: undefined,
+  settingsToken: undefined,
 };
 
 /**
@@ -53,6 +56,7 @@ export function validateConfig(userConfig: SpeechOSCoreConfig): ResolvedConfig {
     host: userConfig.host ?? defaultConfig.host,
     debug: userConfig.debug ?? defaultConfig.debug,
     webSocketFactory: userConfig.webSocketFactory ?? defaultConfig.webSocketFactory,
+    settingsToken: userConfig.settingsToken ?? defaultConfig.settingsToken,
   };
 }
 
@@ -89,6 +93,21 @@ export function resetConfig(): void {
  */
 export function updateUserId(userId: string): void {
   currentConfig = { ...currentConfig, userId };
+}
+
+/**
+ * Get the settings token from the current configuration
+ * @returns The settings token or undefined if not configured
+ */
+export function getSettingsToken(): string | undefined {
+  return currentConfig.settingsToken;
+}
+
+/**
+ * Clear the settings token (e.g., when it expires)
+ */
+export function clearSettingsToken(): void {
+  currentConfig = { ...currentConfig, settingsToken: undefined };
 }
 
 /**

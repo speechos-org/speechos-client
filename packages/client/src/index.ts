@@ -139,6 +139,9 @@ export type {
 
 export { getSessionSettings };
 
+// Settings sync
+export { settingsSync } from "./settings-sync.js";
+
 // Version
 export const VERSION = "0.1.0";
 
