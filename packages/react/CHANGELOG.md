@@ -1,5 +1,14 @@
 # @speechos/react
 
+## 1.0.9
+
+### Patch Changes
+
+- Simplify Chrome extension code for security purposes
+- Updated dependencies
+  - @speechos/client@0.2.10
+  - @speechos/core@0.2.9
+
 ## 1.0.8
 
 ### Patch Changes

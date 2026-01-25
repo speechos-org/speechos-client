@@ -1,5 +1,11 @@
 # @speechos/core
 
+## 0.2.9
+
+### Patch Changes
+
+- Simplify Chrome extension code for security purposes
+
 ## 0.2.8
 
 ### Patch Changes
