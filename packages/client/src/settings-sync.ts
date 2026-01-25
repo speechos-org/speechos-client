@@ -1,6 +1,6 @@
 /**
  * Settings sync manager
- * Syncs user settings (language, vocabulary, snippets) with the server
+ * Syncs user settings (language, vocabulary, snippets, history) with the server
  */
 
 import {
@@ -20,6 +20,7 @@ import {
   type VocabularyTerm,
 } from "./stores/vocabulary-store.js";
 import { getSnippets, type Snippet } from "./stores/snippets-store.js";
+import { getTranscripts } from "./stores/transcript-store.js";
 
 // Sync debounce delay in milliseconds
 const SYNC_DEBOUNCE_MS = 2000;
@@ -34,6 +35,20 @@ const BASE_RETRY_DELAY_MS = 2000;
 const VOCABULARY_STORAGE_KEY = "speechos_vocabulary";
 const SNIPPETS_STORAGE_KEY = "speechos_snippets";
 const LANGUAGE_STORAGE_KEY = "speechos_language_settings";
+const HISTORY_STORAGE_KEY = "speechos_transcripts";
+
+/**
+ * Synced history entry (excludes commandConfig to reduce payload size)
+ */
+interface SyncedHistoryEntry {
+  id: string;
+  text: string;
+  timestamp: number;
+  action: "dictate" | "edit" | "command";
+  originalText?: string;
+  inputText?: string;
+  commandResult?: { name: string; arguments: Record<string, unknown> } | null;
+}
 
 /**
  * Server settings response format
@@ -46,6 +61,7 @@ interface ServerSettings {
   };
   vocabulary: VocabularyTerm[];
   snippets: Snippet[];
+  history: SyncedHistoryEntry[];
   lastSyncedAt: string;
 }
 
@@ -58,6 +74,8 @@ class SettingsSync {
   private retryCount = 0;
   private isInitialized = false;
   private unsubscribe: (() => void) | null = null;
+  /** When true, sync is disabled due to CSP or network restrictions */
+  private syncDisabled = false;
 
   /**
    * Initialize the settings sync manager
@@ -99,6 +117,7 @@ class SettingsSync {
     }
     this.isInitialized = false;
     this.retryCount = 0;
+    this.syncDisabled = false;
   }
 
   /**
@@ -149,9 +168,17 @@ class SettingsSync {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      if (config.debug) {
+
+      // Check if this is a CSP/network restriction - disable sync permanently for this session
+      if (this.isNetworkRestrictionError(error)) {
+        this.syncDisabled = true;
+        if (config.debug) {
+          console.log("[SpeechOS] Settings sync disabled (CSP/network restriction), using localStorage only");
+        }
+      } else if (config.debug) {
         console.warn("[SpeechOS] Failed to load settings from server:", errorMessage);
       }
+
       events.emit("settings:syncFailed", { error: errorMessage });
       // Continue with local settings on error
     }
@@ -176,6 +203,11 @@ class SettingsSync {
     // Snippets - server wins
     if (serverSettings.snippets) {
       this.updateSnippetsDirectly(serverSettings.snippets);
+    }
+
+    // History - server wins
+    if (serverSettings.history) {
+      this.updateHistoryDirectly(serverSettings.history);
     }
   }
 
@@ -218,11 +250,22 @@ class SettingsSync {
   }
 
   /**
+   * Update history directly in localStorage without triggering events
+   */
+  private updateHistoryDirectly(history: SyncedHistoryEntry[]): void {
+    try {
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+    } catch {
+      // localStorage unavailable
+    }
+  }
+
+  /**
    * Schedule a debounced sync to server
    */
   scheduleSyncToServer(): void {
     const token = getSettingsToken();
-    if (!token) {
+    if (!token || this.syncDisabled) {
       return;
     }
 
@@ -242,7 +285,7 @@ class SettingsSync {
    */
   async syncToServer(): Promise<void> {
     const token = getSettingsToken();
-    if (!token || this.isSyncing) {
+    if (!token || this.isSyncing || this.syncDisabled) {
       return;
     }
 
@@ -253,6 +296,7 @@ class SettingsSync {
       const languageSettings = getLanguageSettings();
       const vocabulary = getVocabulary();
       const snippets = getSnippets();
+      const transcripts = getTranscripts();
 
       const payload = {
         language: {
@@ -270,6 +314,16 @@ class SettingsSync {
           trigger: s.trigger,
           expansion: s.expansion,
           createdAt: s.createdAt,
+        })),
+        // Sync history (excluding commandConfig to reduce payload size)
+        history: transcripts.map((t) => ({
+          id: t.id,
+          text: t.text,
+          timestamp: t.timestamp,
+          action: t.action,
+          ...(t.originalText && { originalText: t.originalText }),
+          ...(t.inputText && { inputText: t.inputText }),
+          ...(t.commandResult !== undefined && { commandResult: t.commandResult }),
         })),
       };
 
@@ -300,13 +354,24 @@ class SettingsSync {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      if (config.debug) {
-        console.warn("[SpeechOS] Failed to sync settings to server:", errorMessage);
-      }
-      events.emit("settings:syncFailed", { error: errorMessage });
 
-      // Retry with exponential backoff
-      this.scheduleRetry();
+      // Check if this is a CSP/network restriction - disable sync permanently for this session
+      if (this.isNetworkRestrictionError(error)) {
+        this.syncDisabled = true;
+        if (config.debug) {
+          console.log("[SpeechOS] Settings sync disabled (CSP/network restriction), using localStorage only");
+        }
+        events.emit("settings:syncFailed", { error: errorMessage });
+        // Don't retry - CSP errors are permanent
+      } else {
+        if (config.debug) {
+          console.warn("[SpeechOS] Failed to sync settings to server:", errorMessage);
+        }
+        events.emit("settings:syncFailed", { error: errorMessage });
+
+        // Retry with exponential backoff (only for transient errors)
+        this.scheduleRetry();
+      }
     } finally {
       this.isSyncing = false;
     }
@@ -331,6 +396,25 @@ class SettingsSync {
     this.syncTimer = setTimeout(() => {
       this.syncToServer();
     }, delay);
+  }
+
+  /**
+   * Check if an error is a CSP or network restriction error
+   * These errors are permanent and shouldn't trigger retries
+   */
+  private isNetworkRestrictionError(error: unknown): boolean {
+    if (error instanceof TypeError) {
+      const message = error.message.toLowerCase();
+      // Common CSP/network error messages
+      return (
+        message.includes("failed to fetch") ||
+        message.includes("network request failed") ||
+        message.includes("content security policy") ||
+        message.includes("csp") ||
+        message.includes("blocked")
+      );
+    }
+    return false;
   }
 
   /**

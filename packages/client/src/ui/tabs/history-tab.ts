@@ -153,6 +153,20 @@ export class SpeechOSHistoryTab extends LitElement {
         background: rgba(239, 68, 68, 0.18);
         border-color: rgba(239, 68, 68, 0.25);
       }
+
+      .command-matched {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 6px;
+      }
+
+      .command-matched code {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+      }
     `,
   ];
 
@@ -239,7 +253,14 @@ export class SpeechOSHistoryTab extends LitElement {
   private renderCommandDetails(entry: TranscriptEntry) {
     // Show the transcript text (what the user said)
     const displayText = entry.inputText || entry.text;
-    return html`<div class="transcript-text">${displayText}</div>`;
+    const commandName = entry.commandResult?.name;
+
+    return html`
+      <div class="transcript-text">${displayText}</div>
+      ${commandName
+        ? html`<div class="command-matched">Matched: <code>${commandName}</code></div>`
+        : null}
+    `;
   }
 
   private getCopyText(entry: TranscriptEntry): string {

@@ -3,7 +3,7 @@
  * Persists transcripts to localStorage for viewing in the settings modal
  */
 
-import type { CommandDefinition, CommandResult } from "@speechos/core";
+import { events, type CommandDefinition, type CommandResult } from "@speechos/core";
 
 export type TranscriptAction = "dictate" | "edit" | "command";
 
@@ -95,6 +95,8 @@ export function saveTranscript(
 
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
+    // Emit settings change event to trigger sync
+    events.emit("settings:changed", { setting: "history" });
   } catch {
     // localStorage full or unavailable - silently fail
   }
@@ -108,6 +110,8 @@ export function saveTranscript(
 export function clearTranscripts(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    // Emit settings change event to trigger sync
+    events.emit("settings:changed", { setting: "history" });
   } catch {
     // Silently fail
   }
@@ -120,6 +124,8 @@ export function deleteTranscript(id: string): void {
   const entries = getTranscripts().filter((e) => e.id !== id);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    // Emit settings change event to trigger sync
+    events.emit("settings:changed", { setting: "history" });
   } catch {
     // Silently fail
   }

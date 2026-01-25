@@ -270,10 +270,10 @@ export interface SpeechOSEventMap {
   // ============================================
   // Settings events
   // ============================================
-  /** Emitted when user settings change (language, snippets, vocabulary, smartFormat) */
+  /** Emitted when user settings change (language, snippets, vocabulary, smartFormat, history) */
   "settings:changed": {
     /** Type of setting that changed */
-    setting: "language" | "snippets" | "vocabulary" | "smartFormat";
+    setting: "language" | "snippets" | "vocabulary" | "smartFormat" | "history";
   };
 
   // ============================================
