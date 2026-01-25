@@ -321,4 +321,79 @@ describe("VocabularyStore", () => {
       expect(getVocabulary()).toHaveLength(4);
     });
   });
+
+  describe("memory cache behavior (server sync)", () => {
+    it("setVocabulary should populate memory cache", () => {
+      const serverTerms = [
+        { id: "server-1", term: "ServerTerm1", createdAt: 1000 },
+        { id: "server-2", term: "ServerTerm2", createdAt: 2000 },
+      ];
+
+      vocabularyStore.setVocabulary(serverTerms);
+
+      const result = getVocabulary();
+      expect(result).toHaveLength(2);
+      expect(result[0].term).toBe("ServerTerm2"); // Newer first
+      expect(result[1].term).toBe("ServerTerm1");
+    });
+
+    it("memory cache takes precedence over localStorage", () => {
+      // First, put something in localStorage
+      localStorage.setItem(
+        "speechos_vocabulary",
+        JSON.stringify([{ id: "local-1", term: "LocalTerm", createdAt: 500 }])
+      );
+
+      // Then set server data via setVocabulary
+      const serverTerms = [
+        { id: "server-1", term: "ServerTerm", createdAt: 1000 },
+      ];
+      vocabularyStore.setVocabulary(serverTerms);
+
+      // getVocabulary should return server data, not localStorage
+      const result = getVocabulary();
+      expect(result).toHaveLength(1);
+      expect(result[0].term).toBe("ServerTerm");
+      expect(result[0].id).toBe("server-1");
+    });
+
+    it("addTerm updates memory cache when set", () => {
+      // Set initial server data
+      vocabularyStore.setVocabulary([
+        { id: "server-1", term: "ServerTerm", createdAt: 1000 },
+      ]);
+
+      // Add a new term
+      addTerm("NewTerm");
+
+      // Should have both terms
+      const result = getVocabulary();
+      expect(result).toHaveLength(2);
+      expect(result.some((t) => t.term === "ServerTerm")).toBe(true);
+      expect(result.some((t) => t.term === "NewTerm")).toBe(true);
+    });
+
+    it("clearVocabulary clears memory cache", () => {
+      vocabularyStore.setVocabulary([
+        { id: "server-1", term: "ServerTerm", createdAt: 1000 },
+      ]);
+
+      clearVocabulary();
+
+      expect(getVocabulary()).toHaveLength(0);
+    });
+
+    it("deleteTerm updates memory cache", () => {
+      vocabularyStore.setVocabulary([
+        { id: "server-1", term: "Term1", createdAt: 1000 },
+        { id: "server-2", term: "Term2", createdAt: 2000 },
+      ]);
+
+      deleteTerm("server-1");
+
+      const result = getVocabulary();
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("server-2");
+    });
+  });
 });

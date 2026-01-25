@@ -361,4 +361,79 @@ describe("SnippetsStore", () => {
       removeItemSpy.mockRestore();
     });
   });
+
+  describe("memory cache behavior (server sync)", () => {
+    it("setSnippets should populate memory cache", () => {
+      const serverSnippets = [
+        { id: "server-1", trigger: "sig", expansion: "Signature", createdAt: 1000 },
+        { id: "server-2", trigger: "addr", expansion: "Address", createdAt: 2000 },
+      ];
+
+      snippetsStore.setSnippets(serverSnippets);
+
+      const result = getSnippets();
+      expect(result).toHaveLength(2);
+      expect(result[0].trigger).toBe("addr"); // Newer first
+      expect(result[1].trigger).toBe("sig");
+    });
+
+    it("memory cache takes precedence over localStorage", () => {
+      // First, put something in localStorage
+      localStorage.setItem(
+        "speechos_snippets",
+        JSON.stringify([{ id: "local-1", trigger: "local", expansion: "Local Data", createdAt: 500 }])
+      );
+
+      // Then set server data via setSnippets
+      const serverSnippets = [
+        { id: "server-1", trigger: "server", expansion: "Server Data", createdAt: 1000 },
+      ];
+      snippetsStore.setSnippets(serverSnippets);
+
+      // getSnippets should return server data, not localStorage
+      const result = getSnippets();
+      expect(result).toHaveLength(1);
+      expect(result[0].trigger).toBe("server");
+      expect(result[0].id).toBe("server-1");
+    });
+
+    it("addSnippet updates memory cache when set", () => {
+      // Set initial server data
+      snippetsStore.setSnippets([
+        { id: "server-1", trigger: "sig", expansion: "Signature", createdAt: 1000 },
+      ]);
+
+      // Add a new snippet
+      addSnippet("new", "New Snippet");
+
+      // Should have both snippets
+      const result = getSnippets();
+      expect(result).toHaveLength(2);
+      expect(result.some((s) => s.trigger === "sig")).toBe(true);
+      expect(result.some((s) => s.trigger === "new")).toBe(true);
+    });
+
+    it("clearSnippets clears memory cache", () => {
+      snippetsStore.setSnippets([
+        { id: "server-1", trigger: "sig", expansion: "Signature", createdAt: 1000 },
+      ]);
+
+      clearSnippets();
+
+      expect(getSnippets()).toHaveLength(0);
+    });
+
+    it("deleteSnippet updates memory cache", () => {
+      snippetsStore.setSnippets([
+        { id: "server-1", trigger: "sig", expansion: "Sig", createdAt: 1000 },
+        { id: "server-2", trigger: "addr", expansion: "Addr", createdAt: 2000 },
+      ]);
+
+      deleteSnippet("server-1");
+
+      const result = getSnippets();
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("server-2");
+    });
+  });
 });

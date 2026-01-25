@@ -196,4 +196,79 @@ describe("TranscriptStore", () => {
       removeItemSpy.mockRestore();
     });
   });
+
+  describe("memory cache behavior (server sync)", () => {
+    it("setTranscripts should populate memory cache", () => {
+      const serverTranscripts = [
+        { id: "server-1", text: "Hello", timestamp: 1000, action: "dictate" as const },
+        { id: "server-2", text: "World", timestamp: 2000, action: "dictate" as const },
+      ];
+
+      transcriptStore.setTranscripts(serverTranscripts);
+
+      const result = getTranscripts();
+      expect(result).toHaveLength(2);
+      expect(result[0].text).toBe("World"); // Newer first
+      expect(result[1].text).toBe("Hello");
+    });
+
+    it("memory cache takes precedence over localStorage", () => {
+      // First, put something in localStorage
+      localStorage.setItem(
+        "speechos_transcripts",
+        JSON.stringify([{ id: "local-1", text: "Local", timestamp: 500, action: "dictate" }])
+      );
+
+      // Then set server data via setTranscripts
+      const serverTranscripts = [
+        { id: "server-1", text: "Server", timestamp: 1000, action: "dictate" as const },
+      ];
+      transcriptStore.setTranscripts(serverTranscripts);
+
+      // getTranscripts should return server data, not localStorage
+      const result = getTranscripts();
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("Server");
+      expect(result[0].id).toBe("server-1");
+    });
+
+    it("saveTranscript updates memory cache when set", () => {
+      // Set initial server data
+      transcriptStore.setTranscripts([
+        { id: "server-1", text: "Server", timestamp: 1000, action: "dictate" as const },
+      ]);
+
+      // Save a new transcript
+      saveTranscript("New entry", "dictate");
+
+      // Should have both transcripts
+      const result = getTranscripts();
+      expect(result).toHaveLength(2);
+      expect(result.some((t) => t.text === "Server")).toBe(true);
+      expect(result.some((t) => t.text === "New entry")).toBe(true);
+    });
+
+    it("clearTranscripts clears memory cache", () => {
+      transcriptStore.setTranscripts([
+        { id: "server-1", text: "Server", timestamp: 1000, action: "dictate" as const },
+      ]);
+
+      clearTranscripts();
+
+      expect(getTranscripts()).toHaveLength(0);
+    });
+
+    it("deleteTranscript updates memory cache", () => {
+      transcriptStore.setTranscripts([
+        { id: "server-1", text: "Entry1", timestamp: 1000, action: "dictate" as const },
+        { id: "server-2", text: "Entry2", timestamp: 2000, action: "dictate" as const },
+      ]);
+
+      deleteTranscript("server-1");
+
+      const result = getTranscripts();
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("server-2");
+    });
+  });
 });
