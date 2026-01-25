@@ -117,6 +117,16 @@ export class SpeechOSSettingsTab extends LitElement {
         padding: 8px;
       }
 
+      .settings-select:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .settings-select:disabled:hover {
+        border-color: rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.3);
+      }
+
       .settings-select-arrow {
         position: absolute;
         right: 14px;
@@ -344,7 +354,8 @@ export class SpeechOSSettingsTab extends LitElement {
 
   private renderLanguageSelector(
     selectedCode: string,
-    onChange: (event: Event) => void
+    onChange: (event: Event) => void,
+    disabled: boolean = false
   ) {
     return html`
       <div class="settings-select-wrapper">
@@ -352,6 +363,7 @@ export class SpeechOSSettingsTab extends LitElement {
           class="settings-select"
           .value="${selectedCode}"
           @change="${onChange}"
+          ?disabled="${disabled}"
         >
           ${SUPPORTED_LANGUAGES.map(
             (lang) => html`
@@ -476,7 +488,7 @@ export class SpeechOSSettingsTab extends LitElement {
         <div class="settings-section-description">
           AI automatically removes filler words, adds punctuation, and polishes
           your text. Disable for raw transcription output. Note: disabling also
-          turns off text snippets.
+          turns off text snippets and output language translation.
         </div>
         <div class="settings-toggle-row">
           <span class="settings-toggle-label">Enable AI formatting</span>
@@ -520,11 +532,16 @@ export class SpeechOSSettingsTab extends LitElement {
         </div>
         <div class="settings-section-description">
           The language for your transcribed text. Usually the same as input, but
-          can differ for translation.
+          can differ for translation.${!this.smartFormatEnabled
+            ? " Requires Smart Format to be enabled."
+            : ""}
         </div>
         ${this.renderLanguageSelector(
-          this.selectedOutputLanguageCode,
-          this.handleOutputLanguageChange.bind(this)
+          this.smartFormatEnabled
+            ? this.selectedOutputLanguageCode
+            : this.selectedInputLanguageCode,
+          this.handleOutputLanguageChange.bind(this),
+          !this.smartFormatEnabled
         )}
       </div>
     `;
