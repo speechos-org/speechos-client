@@ -1,5 +1,14 @@
 # @speechos/react
 
+## 1.0.8
+
+### Patch Changes
+
+- Internal work to support Chrome extension
+- Updated dependencies
+  - @speechos/client@0.2.9
+  - @speechos/core@0.2.8
+
 ## 1.0.7
 
 ### Patch Changes

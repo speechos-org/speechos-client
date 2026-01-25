@@ -1,5 +1,13 @@
 # @speechos/client
 
+## 0.2.9
+
+### Patch Changes
+
+- Internal work to support Chrome extension
+- Updated dependencies
+  - @speechos/core@0.2.8
+
 ## 0.2.8
 
 ### Patch Changes
