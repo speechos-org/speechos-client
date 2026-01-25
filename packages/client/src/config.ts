@@ -34,6 +34,14 @@ export interface SpeechOSClientConfig extends SpeechOSCoreConfig {
    * Default: false
    */
   alwaysVisible?: boolean;
+  /**
+   * Use external settings page instead of built-in settings modal.
+   * When true, clicking the settings button opens /a/extension-settings
+   * at the configured host URL in a new tab.
+   *
+   * Default: false
+   */
+  useExternalSettings?: boolean;
 }
 
 /**
@@ -43,6 +51,7 @@ export interface ResolvedClientConfig {
   commands: CommandDefinition[];
   zIndex: number;
   alwaysVisible: boolean;
+  useExternalSettings: boolean;
 }
 
 /**
@@ -52,6 +61,7 @@ const defaultClientConfig: ResolvedClientConfig = {
   commands: [],
   zIndex: 999999,
   alwaysVisible: false,
+  useExternalSettings: false,
 };
 
 /**
@@ -69,6 +79,7 @@ export function validateClientConfig(config: SpeechOSClientConfig): ResolvedClie
     commands: config.commands ?? defaultClientConfig.commands,
     zIndex: config.zIndex ?? defaultClientConfig.zIndex,
     alwaysVisible: config.alwaysVisible ?? defaultClientConfig.alwaysVisible,
+    useExternalSettings: config.useExternalSettings ?? defaultClientConfig.useExternalSettings,
   };
 
   // Validate zIndex
@@ -130,4 +141,11 @@ export function getZIndex(): number {
  */
 export function isAlwaysVisible(): boolean {
   return currentClientConfig.alwaysVisible;
+}
+
+/**
+ * Check if external settings page should be used
+ */
+export function useExternalSettings(): boolean {
+  return currentClientConfig.useExternalSettings;
 }

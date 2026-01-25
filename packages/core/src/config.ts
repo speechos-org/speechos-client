@@ -7,9 +7,7 @@ import type { SpeechOSCoreConfig, WebSocketFactory, FetchHandler } from "./types
 /**
  * Default host - can be overridden by SPEECHOS_HOST env var at build time
  */
-export const DEFAULT_HOST: string =
-  (typeof process !== "undefined" && process.env?.SPEECHOS_HOST) ||
-  "https://app.speechos.ai";
+export const DEFAULT_HOST: string = (typeof process !== "undefined" && process.env?.SPEECHOS_HOST) || "https://app.speechos.ai";
 
 /**
  * Configuration with defaults applied (all fields required internally)
@@ -48,9 +46,7 @@ const defaultConfig: ResolvedConfig = {
 export function validateConfig(userConfig: SpeechOSCoreConfig): ResolvedConfig {
   // Validate apiKey is provided
   if (!userConfig.apiKey) {
-    throw new Error(
-      "SpeechOS requires an apiKey. Get one from your team dashboard at /a/<team-slug>/."
-    );
+    throw new Error("SpeechOS requires an apiKey. Get one from your team dashboard at /a/.");
   }
 
   return {
@@ -125,7 +121,7 @@ export function getFetchHandler(): FetchHandler | undefined {
 /**
  * LocalStorage key for anonymous ID persistence
  */
-const ANONYMOUS_ID_KEY = 'speechos_anonymous_id';
+const ANONYMOUS_ID_KEY = "speechos_anonymous_id";
 
 /**
  * Get or generate a persistent anonymous ID for Mixpanel tracking.
@@ -138,7 +134,7 @@ const ANONYMOUS_ID_KEY = 'speechos_anonymous_id';
  */
 export function getAnonymousId(): string {
   // Only available in browser environments with localStorage
-  if (typeof localStorage === 'undefined') {
+  if (typeof localStorage === "undefined") {
     return crypto.randomUUID();
   }
 

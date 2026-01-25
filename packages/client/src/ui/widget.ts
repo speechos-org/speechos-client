@@ -22,7 +22,7 @@ import {
   type CommandResult,
   type SpeechOSEventMap,
 } from "@speechos/core";
-import { getClientConfig, isAlwaysVisible } from "../config.js";
+import { getClientConfig, isAlwaysVisible, useExternalSettings } from "../config.js";
 import { getSessionSettings } from "../speechos.js";
 import { transcriptStore } from "../stores/transcript-store.js";
 import { insertTextIntoField, setFieldText, getFieldSelection } from "text-field-edit";
@@ -652,7 +652,13 @@ export class SpeechOSWidget extends LitElement {
   }
 
   private handleSettingsClick(): void {
-    this.settingsOpen = true;
+    if (useExternalSettings()) {
+      const host = getConfig().host;
+      const fullUrl = `${host}/a/extension-settings`;
+      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      this.settingsOpen = true;
+    }
   }
 
   private handleDragStart(e: MouseEvent): void {
@@ -1264,11 +1270,17 @@ export class SpeechOSWidget extends LitElement {
     this.editSelectionEnd = null;
     this.editSelectedText = "";
 
-    // Open settings modal
-    this.settingsOpen = true;
+    // Open settings - either external URL or modal
+    if (useExternalSettings()) {
+      const host = getConfig().host;
+      const fullUrl = `${host}/a/extension-settings`;
+      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      this.settingsOpen = true;
+    }
 
     if (getConfig().debug) {
-      console.log("[SpeechOS] Settings modal opened from no-audio warning");
+      console.log("[SpeechOS] Settings opened from no-audio warning", { useExternalSettings: useExternalSettings() });
     }
 
     await disconnectPromise;

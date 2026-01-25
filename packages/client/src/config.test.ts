@@ -9,6 +9,7 @@ import {
   setClientConfig,
   resetClientConfig,
   isAlwaysVisible,
+  useExternalSettings,
 } from "./config.js";
 
 describe("client config", () => {
@@ -23,6 +24,7 @@ describe("client config", () => {
       expect(result.commands).toEqual([]);
       expect(result.zIndex).toBe(999999);
       expect(result.alwaysVisible).toBe(false);
+      expect(result.useExternalSettings).toBe(false);
     });
 
     it("should preserve provided alwaysVisible value", () => {
@@ -62,6 +64,18 @@ describe("client config", () => {
 
       warnSpy.mockRestore();
     });
+
+    it("should preserve provided useExternalSettings value", () => {
+      const result = validateClientConfig({ useExternalSettings: true } as any);
+
+      expect(result.useExternalSettings).toBe(true);
+    });
+
+    it("should default useExternalSettings to false", () => {
+      const result = validateClientConfig({ commands: [] } as any);
+
+      expect(result.useExternalSettings).toBe(false);
+    });
   });
 
   describe("setClientConfig and getClientConfig", () => {
@@ -97,6 +111,25 @@ describe("client config", () => {
       resetClientConfig();
 
       expect(isAlwaysVisible()).toBe(false);
+    });
+  });
+
+  describe("useExternalSettings", () => {
+    it("should return false by default", () => {
+      expect(useExternalSettings()).toBe(false);
+    });
+
+    it("should return true when useExternalSettings is set", () => {
+      setClientConfig({ useExternalSettings: true } as any);
+
+      expect(useExternalSettings()).toBe(true);
+    });
+
+    it("should return false after reset", () => {
+      setClientConfig({ useExternalSettings: true } as any);
+      resetClientConfig();
+
+      expect(useExternalSettings()).toBe(false);
     });
   });
 });

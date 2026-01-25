@@ -118,6 +118,7 @@ export {
   hasCommands,
   getCommands,
   getZIndex,
+  useExternalSettings,
 } from "./config.js";
 export type { SpeechOSClientConfig, ResolvedClientConfig } from "./config.js";
 

@@ -83,6 +83,14 @@ export interface SpeechOSReactConfig extends SpeechOSCoreConfig {
    * Default: handles input, textarea, and contenteditable elements.
    */
   textInputHandler?: TextInputHandlerInterface;
+  /**
+   * Use external settings page instead of built-in settings modal.
+   * When true, clicking the settings button opens /a/extension-settings
+   * at the configured host URL in a new tab.
+   *
+   * Default: false
+   */
+  useExternalSettings?: boolean;
 }
 
 /**
