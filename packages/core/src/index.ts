@@ -19,7 +19,6 @@ export {
   validateConfig,
   getSettingsToken,
   clearSettingsToken,
-  getFetchHandler,
   DEFAULT_HOST,
 } from "./config.js";
 export { livekit, Deferred } from "./livekit.js";
@@ -47,9 +46,6 @@ export type {
   VoiceSessionOptions,
   WebSocketLike,
   WebSocketFactory,
-  FetchOptions,
-  FetchResponse,
-  FetchHandler,
 } from "./types.js";
 
 // Version

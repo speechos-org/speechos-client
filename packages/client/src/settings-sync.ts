@@ -7,10 +7,7 @@ import {
   getConfig,
   getSettingsToken,
   clearSettingsToken,
-  getFetchHandler,
   events,
-  type FetchOptions,
-  type FetchResponse,
 } from "@speechos/core";
 import {
   getLanguageSettings,
@@ -75,27 +72,14 @@ class SettingsSync {
   private syncDisabled = false;
 
   /**
-   * Make a fetch request using custom fetchHandler if configured, otherwise native fetch.
-   * This allows the Chrome extension to route fetch traffic through the service worker
-   * to bypass page CSP restrictions.
+   * Make a fetch request using native fetch.
    */
-  private async doFetch(url: string, options: FetchOptions): Promise<FetchResponse> {
+  private async doFetch(url: string, options: RequestInit): Promise<Response> {
     const config = getConfig();
-    const customHandler = getFetchHandler();
-
-    if (customHandler) {
-      if (config.debug) {
-        console.log("[SpeechOS] Using custom fetch handler (extension proxy)", options.method, url);
-      }
-      return customHandler(url, options);
-    }
-
     if (config.debug) {
       console.log("[SpeechOS] Using native fetch", options.method, url);
     }
-    // Use native fetch and wrap response to match FetchResponse interface
-    const response = await fetch(url, options);
-    return response;
+    return fetch(url, options);
   }
 
   /**

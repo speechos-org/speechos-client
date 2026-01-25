@@ -21,7 +21,6 @@ vi.mock("@speechos/core", () => ({
   })),
   getSettingsToken: vi.fn(() => "mock-token"),
   clearSettingsToken: vi.fn(),
-  getFetchHandler: vi.fn(() => undefined),
   events: {
     on: vi.fn(() => vi.fn()), // Return unsubscribe function
     emit: vi.fn(),
@@ -29,7 +28,7 @@ vi.mock("@speechos/core", () => ({
 }));
 
 // Import mocked modules
-import { getSettingsToken, clearSettingsToken, getFetchHandler, events } from "@speechos/core";
+import { getSettingsToken, clearSettingsToken, events } from "@speechos/core";
 
 describe("SettingsSync", () => {
   beforeEach(() => {
@@ -350,100 +349,6 @@ describe("SettingsSync", () => {
       await vi.advanceTimersByTimeAsync(2000);
 
       // No call should have been made
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("custom fetchHandler", () => {
-    it("should use custom fetchHandler when configured", async () => {
-      const mockFetchHandler = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          language: {
-            inputLanguageCode: "en-US",
-            outputLanguageCode: "en-US",
-            smartFormat: true,
-          },
-          vocabulary: [],
-          snippets: [],
-          history: [],
-          lastSyncedAt: "2024-01-01T00:00:00Z",
-        }),
-      });
-
-      vi.mocked(getSettingsToken).mockReturnValue("mock-token");
-      vi.mocked(getFetchHandler).mockReturnValue(mockFetchHandler);
-
-      await settingsSync.init();
-
-      // Custom fetchHandler should be called
-      expect(mockFetchHandler).toHaveBeenCalledWith(
-        "https://app.speechos.ai/api/user-settings/",
-        expect.objectContaining({
-          method: "GET",
-          headers: expect.objectContaining({
-            Authorization: "Bearer mock-token",
-          }),
-        })
-      );
-
-      // Native fetch should NOT be called
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it("should fall back to native fetch when fetchHandler not configured", async () => {
-      vi.mocked(getSettingsToken).mockReturnValue("mock-token");
-      vi.mocked(getFetchHandler).mockReturnValue(undefined);
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          language: {
-            inputLanguageCode: "en-US",
-            outputLanguageCode: "en-US",
-            smartFormat: true,
-          },
-          vocabulary: [],
-          snippets: [],
-          history: [],
-          lastSyncedAt: "2024-01-01T00:00:00Z",
-        }),
-      });
-
-      await settingsSync.init();
-
-      // Native fetch should be called
-      expect(mockFetch).toHaveBeenCalled();
-    });
-
-    it("should use custom fetchHandler for PUT requests (syncToServer)", async () => {
-      const mockFetchHandler = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({}),
-      });
-
-      vi.mocked(getSettingsToken).mockReturnValue("mock-token");
-      vi.mocked(getFetchHandler).mockReturnValue(mockFetchHandler);
-
-      settingsSync.scheduleSyncToServer();
-      await vi.advanceTimersByTimeAsync(2000);
-
-      // Custom fetchHandler should be called with PUT
-      expect(mockFetchHandler).toHaveBeenCalledWith(
-        "https://app.speechos.ai/api/user-settings/",
-        expect.objectContaining({
-          method: "PUT",
-          headers: expect.objectContaining({
-            Authorization: "Bearer mock-token",
-            "Content-Type": "application/json",
-          }),
-          body: expect.any(String),
-        })
-      );
-
-      // Native fetch should NOT be called
       expect(mockFetch).not.toHaveBeenCalled();
     });
   });
