@@ -1,5 +1,14 @@
 # @speechos/react
 
+## 1.0.10
+
+### Patch Changes
+
+- New default light theme
+- Updated dependencies
+  - @speechos/client@0.2.11
+  - @speechos/core@0.2.10
+
 ## 1.0.9
 
 ### Patch Changes

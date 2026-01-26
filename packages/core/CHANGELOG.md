@@ -1,5 +1,11 @@
 # @speechos/core
 
+## 0.2.10
+
+### Patch Changes
+
+- New default light theme
+
 ## 0.2.9
 
 ### Patch Changes

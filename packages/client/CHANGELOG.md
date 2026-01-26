@@ -1,5 +1,13 @@
 # @speechos/client
 
+## 0.2.11
+
+### Patch Changes
+
+- New default light theme
+- Updated dependencies
+  - @speechos/core@0.2.10
+
 ## 0.2.10
 
 ### Patch Changes
