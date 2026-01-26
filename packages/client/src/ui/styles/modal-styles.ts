@@ -186,14 +186,14 @@ export const modalLayoutStyles = css`
     border-radius: 10px;
     background: transparent;
     cursor: pointer;
-    color: #737373;
+    color: #525252;
     transition: all 0.15s ease;
     position: relative;
   }
 
   .sidebar-item:hover {
     background: #ffffff;
-    color: #525252;
+    color: #171717;
   }
 
   .sidebar-item:focus {
@@ -202,8 +202,8 @@ export const modalLayoutStyles = css`
   }
 
   .sidebar-item.active {
-    background: #ffffff;
-    color: #0d9488;
+    background: rgba(15, 118, 110, 0.12);
+    color: #0f766e;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 
@@ -215,7 +215,7 @@ export const modalLayoutStyles = css`
     transform: translateY(-50%);
     width: 3px;
     height: 24px;
-    background: #0d9488;
+    background: #0f766e;
     border-radius: 0 3px 3px 0;
   }
 
