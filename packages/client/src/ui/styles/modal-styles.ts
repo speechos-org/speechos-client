@@ -37,15 +37,15 @@ export const modalLayoutStyles = css`
   }
 
   .modal {
-    background: #1a1d24;
+    background: #f5f5f4;
     border-radius: 16px;
     width: 90%;
     max-width: 580px;
     height: min(560px, 85vh);
     display: flex;
     flex-direction: column;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4),
-      0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15),
+      0 0 0 1px rgba(0, 0, 0, 0.05);
     transform: scale(0.95) translateY(10px);
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: auto;
@@ -70,16 +70,16 @@ export const modalLayoutStyles = css`
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid #e5e5e5;
+    background: #ffffff;
   }
 
   .modal-title {
     font-size: 17px;
     font-weight: 600;
-    color: white;
+    color: #171717;
     margin: 0;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   .modal-logo {
@@ -92,7 +92,7 @@ export const modalLayoutStyles = css`
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #10b981 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -107,13 +107,13 @@ export const modalLayoutStyles = css`
   .logo-text {
     font-size: 17px;
     font-weight: 500;
-    color: white;
+    color: #171717;
     letter-spacing: -0.02em;
   }
 
   .logo-os {
     font-weight: 700;
-    background: linear-gradient(135deg, #34d399 0%, #a78bfa 100%);
+    background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -129,13 +129,22 @@ export const modalLayoutStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
+    color: #737373;
     transition: all 0.15s ease;
   }
 
   .close-button:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
+    background: #f5f5f4;
+    color: #171717;
+  }
+
+  .close-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #0d9488, 0 0 0 4px rgba(13, 148, 136, 0.2);
+  }
+
+  .close-button:active {
+    transform: scale(0.95);
   }
 
   .modal-body {
@@ -147,8 +156,8 @@ export const modalLayoutStyles = css`
   .sidebar {
     width: 110px;
     flex-shrink: 0;
-    background: rgba(0, 0, 0, 0.25);
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background: #fafaf9;
+    border-right: 1px solid #e5e5e5;
     padding: 12px 8px;
     display: flex;
     flex-direction: column;
@@ -177,19 +186,25 @@ export const modalLayoutStyles = css`
     border-radius: 10px;
     background: transparent;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.5);
+    color: #737373;
     transition: all 0.15s ease;
     position: relative;
   }
 
   .sidebar-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.8);
+    background: #ffffff;
+    color: #525252;
+  }
+
+  .sidebar-item:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(13, 148, 136, 0.4);
   }
 
   .sidebar-item.active {
-    background: rgba(16, 185, 129, 0.12);
-    color: #34d399;
+    background: #ffffff;
+    color: #0d9488;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 
   .sidebar-item.active::before {
@@ -200,7 +215,7 @@ export const modalLayoutStyles = css`
     transform: translateY(-50%);
     width: 3px;
     height: 24px;
-    background: #34d399;
+    background: #0d9488;
     border-radius: 0 3px 3px 0;
   }
 
@@ -244,14 +259,14 @@ export const tabContentStyles = css`
   .section-title {
     font-size: 15px;
     font-weight: 600;
-    color: white;
+    color: #171717;
     margin: 0 0 6px 0;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   .section-description {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
+    color: #525252;
     line-height: 1.5;
     margin: 0;
   }
@@ -259,7 +274,7 @@ export const tabContentStyles = css`
   .empty-state {
     text-align: center;
     padding: 40px 20px;
-    color: rgba(255, 255, 255, 0.5);
+    color: #737373;
   }
 
   .empty-state-icon {
@@ -271,7 +286,7 @@ export const tabContentStyles = css`
     font-size: 15px;
     font-weight: 500;
     margin-bottom: 8px;
-    color: rgba(255, 255, 255, 0.7);
+    color: #525252;
   }
 
   .empty-state-text {
@@ -289,7 +304,7 @@ export const tabContentStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.35);
+    color: #737373;
     transition: all 0.15s ease;
   }
 
@@ -328,20 +343,30 @@ export const formStyles = css`
     align-items: center;
     gap: 6px;
     padding: 10px 16px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: #0d9488;
     border: none;
     border-radius: 8px;
     color: white;
     font-size: 13px;
     font-weight: 600;
+    letter-spacing: 0.01em;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .add-button:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    background: #0f766e;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  }
+
+  .add-button:focus:not(:disabled) {
+    outline: none;
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0d9488;
+  }
+
+  .add-button:active:not(:disabled) {
+    transform: scale(0.98);
   }
 
   .add-button:disabled {
@@ -352,7 +377,7 @@ export const formStyles = css`
 
   .count-badge {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.45);
+    color: #737373;
     font-weight: 500;
   }
 
@@ -364,11 +389,12 @@ export const formStyles = css`
   }
 
   .add-form {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
   .form-group {
@@ -383,7 +409,7 @@ export const formStyles = css`
     display: block;
     font-size: 12px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
+    color: #525252;
     margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -392,10 +418,10 @@ export const formStyles = css`
   .form-input {
     width: 100%;
     padding: 12px 14px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #ffffff;
+    border: 1px solid #d4d4d4;
     border-radius: 8px;
-    color: white;
+    color: #171717;
     font-size: 14px;
     font-family: inherit;
     transition: all 0.15s ease;
@@ -404,12 +430,12 @@ export const formStyles = css`
 
   .form-input:focus {
     outline: none;
-    border-color: #34d399;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
   }
 
   .form-input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: #a3a3a3;
   }
 
   .form-input.error {
@@ -433,7 +459,7 @@ export const formStyles = css`
 
   .char-count {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
+    color: #737373;
     font-variant-numeric: tabular-nums;
   }
 
@@ -467,26 +493,35 @@ export const formStyles = css`
   }
 
   .form-btn.cancel {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.7);
+    background: #ffffff;
+    border: 1px solid #d4d4d4;
+    color: #525252;
   }
 
   .form-btn.cancel:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: #fafaf9;
+    border-color: #a3a3a3;
   }
 
   .form-btn.save {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: #0d9488;
     border: none;
     color: white;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .form-btn.save:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    background: #0f766e;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  }
+
+  .form-btn.save:focus:not(:disabled) {
+    outline: none;
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0d9488;
+  }
+
+  .form-btn.save:active:not(:disabled) {
+    transform: scale(0.98);
   }
 
   .form-btn.save:disabled {

@@ -14,9 +14,9 @@ export const themeStyles: CSSResult = css`
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 
     /* Color tokens */
-    --speechos-primary: #10B981;
-    --speechos-primary-hover: #059669;
-    --speechos-primary-active: #047857;
+    --speechos-primary: #0d9488;
+    --speechos-primary-hover: #0f766e;
+    --speechos-primary-active: #115e59;
 
     --speechos-bg: #ffffff;
     --speechos-bg-hover: #f9fafb;

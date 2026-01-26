@@ -36,14 +36,14 @@ export const popupModalStyles = css`
   }
 
   .modal-card {
-    background: #1a1d24;
+    background: #f5f5f4;
     border-radius: 16px;
     width: 90%;
     max-width: 400px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4),
-      0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15),
+      0 0 0 1px rgba(0, 0, 0, 0.05);
     transform: scale(0.95) translateY(10px);
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: auto;
@@ -59,14 +59,14 @@ export const popupModalStyles = css`
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid #e5e5e5;
+    background: #ffffff;
   }
 
   .modal-title {
     font-size: 16px;
     font-weight: 600;
-    color: white;
+    color: #171717;
     margin: 0;
     letter-spacing: -0.01em;
   }
@@ -81,13 +81,22 @@ export const popupModalStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
+    color: #737373;
     transition: all 0.15s ease;
   }
 
   .close-button:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
+    background: #f5f5f4;
+    color: #171717;
+  }
+
+  .close-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #0d9488, 0 0 0 4px rgba(13, 148, 136, 0.2);
+  }
+
+  .close-button:active {
+    transform: scale(0.95);
   }
 
   .modal-body {
@@ -99,8 +108,8 @@ export const popupModalStyles = css`
     justify-content: flex-end;
     gap: 10px;
     padding: 16px 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid #e5e5e5;
+    background: #ffffff;
   }
 
   .btn {
@@ -117,42 +126,47 @@ export const popupModalStyles = css`
   }
 
   .btn-secondary {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.08);
+    color: #525252;
   }
 
   .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: white;
+    background: rgba(0, 0, 0, 0.12);
+    color: #171717;
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: #0d9488;
     color: white;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    background: #0f766e;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  }
+
+  .btn-primary:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0d9488;
   }
 
   .btn-primary:active {
-    transform: translateY(0);
+    transform: scale(0.98);
   }
 
   /* Success state for copy button */
   .btn-success {
-    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    background: #059669;
   }
 
   /* Text display area */
   .text-display {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
     border-radius: 10px;
     padding: 14px 16px;
-    color: white;
+    color: #171717;
     font-size: 14px;
     line-height: 1.5;
     max-height: 200px;
@@ -171,12 +185,12 @@ export const popupModalStyles = css`
   }
 
   .text-display::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.15);
     border-radius: 3px;
   }
 
   .text-display::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.25);
   }
 
   /* Instruction list styling */
@@ -191,7 +205,7 @@ export const popupModalStyles = css`
     align-items: flex-start;
     gap: 12px;
     padding: 12px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid #e5e5e5;
   }
 
   .instruction-item:last-child {
@@ -202,7 +216,7 @@ export const popupModalStyles = css`
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: #0d9488;
     color: white;
     font-size: 12px;
     font-weight: 700;
@@ -214,7 +228,7 @@ export const popupModalStyles = css`
 
   .instruction-text {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.85);
+    color: #171717;
     line-height: 1.5;
     padding-top: 2px;
   }

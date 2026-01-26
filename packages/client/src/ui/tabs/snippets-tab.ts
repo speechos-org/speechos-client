@@ -28,17 +28,18 @@ export class SpeechOSSnippetsTab extends LitElement {
       }
 
       .snippet-item {
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: #ffffff;
+        border: 1px solid #e5e5e5;
         border-radius: 10px;
         padding: 14px;
         transition: all 0.15s ease;
         position: relative;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       }
 
       .snippet-item:hover {
-        background: rgba(255, 255, 255, 0.06);
-        border-color: rgba(255, 255, 255, 0.1);
+        border-color: #d4d4d4;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       }
 
       .snippet-trigger {
@@ -51,7 +52,7 @@ export class SpeechOSSnippetsTab extends LitElement {
       .snippet-trigger-text {
         font-size: 14px;
         font-weight: 600;
-        color: #34d399;
+        color: #0d9488;
       }
 
       .snippet-trigger-text::before {
@@ -69,12 +70,12 @@ export class SpeechOSSnippetsTab extends LitElement {
         align-items: flex-start;
         gap: 8px;
         font-size: 13px;
-        color: rgba(255, 255, 255, 0.65);
+        color: #525252;
         line-height: 1.5;
       }
 
       .snippet-expansion-arrow {
-        color: rgba(255, 255, 255, 0.3);
+        color: #a3a3a3;
         flex-shrink: 0;
         margin-top: 2px;
       }
@@ -103,13 +104,13 @@ export class SpeechOSSnippetsTab extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: rgba(255, 255, 255, 0.4);
+        color: #737373;
         transition: all 0.15s ease;
       }
 
       .edit-btn:hover {
-        background: rgba(52, 211, 153, 0.15);
-        color: #34d399;
+        background: rgba(13, 148, 136, 0.1);
+        color: #0d9488;
       }
     `,
   ];

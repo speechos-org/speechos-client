@@ -34,45 +34,51 @@ export class SpeechOSMicButton extends LitElement {
         width: 56px;
         height: 56px;
         border-radius: var(--speechos-radius-full);
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        background: #10b981;
         border: none;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
       }
 
       .mic-button:hover {
+        background: #059669;
         transform: scale(1.05);
-        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        box-shadow: 0 6px 24px rgba(16, 185, 129, 0.45);
       }
 
       .mic-button:active {
         transform: scale(0.98);
       }
 
+      .mic-button:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.4), 0 4px 16px rgba(16, 185, 129, 0.35);
+      }
+
       /* Expanded state - bubbles visible */
       .mic-button.expanded {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        background: #059669;
       }
 
       /* Connecting state - Siri-style metallic spinner */
       .mic-button.connecting {
         background: radial-gradient(
           circle at 30% 30%,
-          #34d399 0%,
-          #10b981 40%,
-          #059669 70%,
-          #047857 100%
+          #2dd4bf 0%,
+          #14b8a6 40%,
+          #0d9488 70%,
+          #0f766e 100%
         );
         cursor: wait;
-        box-shadow: 0 0 20px rgba(16, 185, 129, 0.4),
-          0 0 40px rgba(16, 185, 129, 0.2),
+        box-shadow: 0 0 20px rgba(13, 148, 136, 0.4),
+          0 0 40px rgba(13, 148, 136, 0.2),
           inset 0 0 20px rgba(255, 255, 255, 0.1);
       }
 
@@ -115,15 +121,15 @@ export class SpeechOSMicButton extends LitElement {
         background: conic-gradient(
           from 0deg,
           transparent 0deg,
-          rgba(52, 211, 153, 0.1) 30deg,
-          rgba(16, 185, 129, 0.8) 90deg,
+          rgba(45, 212, 191, 0.1) 30deg,
+          rgba(13, 148, 136, 0.8) 90deg,
           rgba(255, 255, 255, 0.95) 120deg,
-          rgba(52, 211, 153, 0.9) 150deg,
-          rgba(16, 185, 129, 0.6) 180deg,
-          rgba(5, 150, 105, 0.3) 210deg,
+          rgba(45, 212, 191, 0.9) 150deg,
+          rgba(13, 148, 136, 0.6) 180deg,
+          rgba(15, 118, 110, 0.3) 210deg,
           transparent 270deg,
-          rgba(110, 231, 183, 0.2) 300deg,
-          rgba(16, 185, 129, 0.5) 330deg,
+          rgba(94, 234, 212, 0.2) 300deg,
+          rgba(13, 148, 136, 0.5) 330deg,
           transparent 360deg
         );
         -webkit-mask: linear-gradient(#fff 0 0) content-box,
@@ -144,13 +150,13 @@ export class SpeechOSMicButton extends LitElement {
         background: conic-gradient(
           from 180deg,
           transparent 0deg,
-          rgba(167, 243, 208, 0.3) 60deg,
+          rgba(153, 246, 228, 0.3) 60deg,
           rgba(255, 255, 255, 0.7) 90deg,
-          rgba(110, 231, 183, 0.5) 120deg,
+          rgba(94, 234, 212, 0.5) 120deg,
           transparent 180deg,
-          rgba(52, 211, 153, 0.2) 240deg,
+          rgba(45, 212, 191, 0.2) 240deg,
           rgba(255, 255, 255, 0.5) 270deg,
-          rgba(16, 185, 129, 0.4) 300deg,
+          rgba(13, 148, 136, 0.4) 300deg,
           transparent 360deg
         );
         -webkit-mask: linear-gradient(#fff 0 0) content-box,
@@ -191,8 +197,8 @@ export class SpeechOSMicButton extends LitElement {
         border-radius: 50%;
         background: radial-gradient(
           circle,
-          rgba(16, 185, 129, 0.4) 0%,
-          rgba(16, 185, 129, 0.15) 40%,
+          rgba(13, 148, 136, 0.4) 0%,
+          rgba(13, 148, 136, 0.15) 40%,
           transparent 70%
         );
         animation: siri-glow-pulse 2s ease-in-out infinite;

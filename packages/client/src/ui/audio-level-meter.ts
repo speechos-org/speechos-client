@@ -26,20 +26,21 @@ export class SpeechOSAudioLevelMeter extends LitElement {
         gap: 3px;
         height: 32px;
         padding: 8px 12px;
-        background: rgba(0, 0, 0, 0.2);
+        background: #ffffff;
+        border: 2px solid #e5e5e5;
         border-radius: 8px;
       }
 
       .meter-bar {
         width: 6px;
         min-height: 4px;
-        background: rgba(255, 255, 255, 0.2);
+        background: #d4d4d4;
         border-radius: 2px;
         transition: height 50ms ease-out, background 100ms ease;
       }
 
       .meter-bar.active {
-        background: var(--speechos-primary);
+        background: #10b981;
       }
 
       .meter-inactive {
@@ -48,14 +49,15 @@ export class SpeechOSAudioLevelMeter extends LitElement {
         justify-content: center;
         height: 32px;
         padding: 8px 12px;
-        background: rgba(0, 0, 0, 0.2);
+        background: #ffffff;
+        border: 2px solid #e5e5e5;
         border-radius: 8px;
-        color: rgba(255, 255, 255, 0.4);
+        color: #737373;
         font-size: 13px;
       }
 
       .meter-error {
-        color: #f87171;
+        color: #dc2626;
       }
     `,
   ];

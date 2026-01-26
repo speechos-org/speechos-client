@@ -48,18 +48,18 @@ export class SpeechOSSettingsTab extends LitElement {
       }
 
       .settings-section-icon {
-        color: #34d399;
+        color: #0d9488;
       }
 
       .settings-section-title {
         font-size: 14px;
         font-weight: 600;
-        color: white;
+        color: #171717;
       }
 
       .settings-section-description {
         font-size: 13px;
-        color: rgba(255, 255, 255, 0.45);
+        color: #525252;
         line-height: 1.5;
         margin-bottom: 14px;
       }
@@ -88,10 +88,10 @@ export class SpeechOSSettingsTab extends LitElement {
       .settings-select {
         width: 100%;
         padding: 12px 40px 12px 14px;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #ffffff;
+        border: 1px solid #d4d4d4;
         border-radius: 10px;
-        color: white;
+        color: #171717;
         font-size: 14px;
         font-family: inherit;
         cursor: pointer;
@@ -101,19 +101,19 @@ export class SpeechOSSettingsTab extends LitElement {
       }
 
       .settings-select:hover {
-        border-color: rgba(255, 255, 255, 0.15);
-        background: rgba(0, 0, 0, 0.4);
+        border-color: #a3a3a3;
+        background: #ffffff;
       }
 
       .settings-select:focus {
         outline: none;
-        border-color: #34d399;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+        border-color: #0d9488;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
       }
 
       .settings-select option {
-        background: #1a1d24;
-        color: white;
+        background: #ffffff;
+        color: #171717;
         padding: 8px;
       }
 
@@ -123,8 +123,8 @@ export class SpeechOSSettingsTab extends LitElement {
       }
 
       .settings-select:disabled:hover {
-        border-color: rgba(255, 255, 255, 0.08);
-        background: rgba(0, 0, 0, 0.3);
+        border-color: #d4d4d4;
+        background: #ffffff;
       }
 
       .settings-select-arrow {
@@ -133,12 +133,12 @@ export class SpeechOSSettingsTab extends LitElement {
         top: 50%;
         transform: translateY(-50%);
         pointer-events: none;
-        color: rgba(255, 255, 255, 0.4);
+        color: #737373;
       }
 
       .settings-permission-note {
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.4);
+        color: #737373;
         margin-top: 10px;
         font-style: italic;
       }
@@ -148,7 +148,7 @@ export class SpeechOSSettingsTab extends LitElement {
         align-items: center;
         gap: 4px;
         font-size: 11px;
-        color: #34d399;
+        color: #059669;
         font-weight: 500;
         opacity: 0;
         transition: opacity 0.2s ease;
@@ -164,28 +164,34 @@ export class SpeechOSSettingsTab extends LitElement {
         align-items: center;
         justify-content: space-between;
         padding: 12px 14px;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #ffffff;
+        border: 1px solid #e5e5e5;
         border-radius: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       }
 
       .settings-toggle-label {
         font-size: 14px;
-        color: white;
+        color: #171717;
       }
 
       .settings-toggle {
         position: relative;
         width: 44px;
         height: 24px;
-        background: rgba(255, 255, 255, 0.1);
+        background: #d4d4d4;
         border-radius: 12px;
         cursor: pointer;
         transition: background 0.2s ease;
       }
 
       .settings-toggle.active {
-        background: #34d399;
+        background: #0d9488;
+      }
+
+      .settings-toggle:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0d9488;
       }
 
       .settings-toggle-knob {

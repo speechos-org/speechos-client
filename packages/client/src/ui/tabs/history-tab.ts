@@ -34,16 +34,17 @@ export class SpeechOSHistoryTab extends LitElement {
       }
 
       .transcript-item {
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: #ffffff;
+        border: 1px solid #e5e5e5;
         border-radius: 10px;
         padding: 12px 14px;
         transition: all 0.15s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       }
 
       .transcript-item:hover {
-        background: rgba(255, 255, 255, 0.06);
-        border-color: rgba(255, 255, 255, 0.1);
+        border-color: #d4d4d4;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       }
 
       .transcript-header {
@@ -66,28 +67,28 @@ export class SpeechOSHistoryTab extends LitElement {
       }
 
       .transcript-badge.dictate {
-        background: rgba(16, 185, 129, 0.15);
-        color: #34d399;
+        background: rgba(13, 148, 136, 0.18);
+        color: #0f766e;
       }
 
       .transcript-badge.edit {
-        background: rgba(139, 92, 246, 0.15);
-        color: #a78bfa;
+        background: rgba(139, 92, 246, 0.18);
+        color: #7c3aed;
       }
 
       .transcript-badge.command {
-        background: rgba(245, 158, 11, 0.15);
-        color: #fbbf24;
+        background: rgba(245, 158, 11, 0.18);
+        color: #b45309;
       }
 
       .transcript-time {
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.35);
+        color: #737373;
       }
 
       .transcript-text {
         font-size: 14px;
-        color: rgba(255, 255, 255, 0.85);
+        color: #171717;
         line-height: 1.5;
         word-break: break-word;
         display: -webkit-box;
@@ -102,7 +103,7 @@ export class SpeechOSHistoryTab extends LitElement {
         gap: 8px;
         margin-top: 10px;
         padding-top: 10px;
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        border-top: 1px solid #e5e5e5;
       }
 
       .transcript-action-btn {
@@ -111,23 +112,23 @@ export class SpeechOSHistoryTab extends LitElement {
         gap: 6px;
         padding: 6px 10px;
         border-radius: 6px;
-        background: rgba(255, 255, 255, 0.06);
+        background: rgba(0, 0, 0, 0.08);
         border: none;
         cursor: pointer;
         font-size: 12px;
         font-weight: 500;
-        color: rgba(255, 255, 255, 0.6);
+        color: #404040;
         transition: all 0.15s ease;
       }
 
       .transcript-action-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.9);
+        background: rgba(0, 0, 0, 0.12);
+        color: #171717;
       }
 
       .transcript-action-btn.copied {
-        background: rgba(16, 185, 129, 0.2);
-        color: #34d399;
+        background: rgba(13, 148, 136, 0.2);
+        color: #0d9488;
       }
 
       .transcript-action-btn.delete:hover {
@@ -141,9 +142,9 @@ export class SpeechOSHistoryTab extends LitElement {
         margin-top: 16px;
         padding: 10px;
         background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.2);
         border-radius: 8px;
-        color: #f87171;
+        color: #dc2626;
         font-size: 13px;
         font-weight: 500;
         cursor: pointer;
@@ -152,18 +153,18 @@ export class SpeechOSHistoryTab extends LitElement {
 
       .clear-all-button:hover {
         background: rgba(239, 68, 68, 0.18);
-        border-color: rgba(239, 68, 68, 0.25);
+        border-color: rgba(239, 68, 68, 0.3);
       }
 
       .command-matched {
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.5);
+        color: #525252;
         margin-top: 6px;
       }
 
       .command-matched code {
         background: rgba(245, 158, 11, 0.15);
-        color: #fbbf24;
+        color: #d97706;
         padding: 2px 6px;
         border-radius: 4px;
         font-family: monospace;

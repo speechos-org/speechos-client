@@ -27,7 +27,7 @@ export class SpeechOSDictationOutputModal extends LitElement {
         width: 32px;
         height: 32px;
         border-radius: 8px;
-        background: linear-gradient(135deg, #10b981 0%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -41,31 +41,35 @@ export class SpeechOSDictationOutputModal extends LitElement {
       }
 
       .modal-title {
-        background: linear-gradient(135deg, #34d399 0%, #a78bfa 100%);
+        background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
       }
 
       .btn-primary {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        background: #0d9488;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         border-radius: 999px;
       }
 
       .btn-primary:hover {
-        background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        background: #0f766e;
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+      }
+
+      .btn-primary:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0d9488;
       }
 
       .btn-primary:active {
-        transform: translateY(0);
+        transform: scale(0.98);
       }
 
       .btn-success {
-        background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-        box-shadow: 0 4px 12px rgba(52, 211, 153, 0.3);
+        background: #059669;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         border-radius: 999px;
       }
 
@@ -79,14 +83,15 @@ export class SpeechOSDictationOutputModal extends LitElement {
         gap: 6px;
         margin-top: 12px;
         padding: 8px 12px;
-        background: rgba(16, 185, 129, 0.08);
+        background: #ffffff;
+        border: 1px solid #e5e5e5;
         border-radius: 8px;
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.6);
+        color: #525252;
       }
 
       .hint-icon {
-        color: #10b981;
+        color: #0d9488;
         flex-shrink: 0;
       }
 

@@ -33,30 +33,32 @@ export class SpeechOSVocabularyTab extends LitElement {
         gap: 8px;
         padding: 8px 12px;
         background: rgba(139, 92, 246, 0.1);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.25);
         border-radius: 8px;
         transition: all 0.15s ease;
       }
 
       .vocabulary-chip:hover {
         background: rgba(139, 92, 246, 0.15);
-        border-color: rgba(139, 92, 246, 0.3);
+        border-color: rgba(139, 92, 246, 0.35);
       }
 
       .vocabulary-chip-text {
         font-size: 13px;
         font-weight: 500;
-        color: #c4b5fd;
+        color: #7c3aed;
       }
 
       .vocabulary-chip .delete-btn {
         width: 20px;
         height: 20px;
         margin: -4px -4px -4px 0;
+        color: #737373;
       }
 
       .vocabulary-chip .delete-btn:hover {
         background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
       }
     `,
   ];

@@ -30,21 +30,21 @@ export class SpeechOSHelpTab extends LitElement {
         gap: 8px;
         font-size: 15px;
         font-weight: 600;
-        color: white;
+        color: #171717;
         margin-bottom: 10px;
       }
 
       .help-title.dictate {
-        color: #34d399;
+        color: #0f766e;
       }
 
       .help-title.edit {
-        color: #a78bfa;
+        color: #7c3aed;
       }
 
       .help-text {
         font-size: 13px;
-        color: rgba(255, 255, 255, 0.6);
+        color: #525252;
         line-height: 1.6;
         margin-bottom: 10px;
       }
@@ -61,17 +61,17 @@ export class SpeechOSHelpTab extends LitElement {
       }
 
       .help-example {
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: #ffffff;
+        border: 1px solid #e5e5e5;
         border-radius: 6px;
         padding: 8px 12px;
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.5);
+        color: #525252;
         font-style: italic;
       }
 
       .help-title.languages {
-        background: linear-gradient(135deg, #34d399 0%, #a78bfa 100%);
+        background: linear-gradient(135deg, #0f766e 0%, #1d4ed8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;

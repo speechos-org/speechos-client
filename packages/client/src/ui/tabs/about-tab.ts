@@ -27,7 +27,7 @@ export class SpeechOSAboutTab extends LitElement {
         width: 36px;
         height: 36px;
         border-radius: 10px;
-        background: linear-gradient(135deg, #10b981 0%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -42,13 +42,13 @@ export class SpeechOSAboutTab extends LitElement {
       .about-logo-text {
         font-size: 22px;
         font-weight: 500;
-        color: white;
+        color: #171717;
         letter-spacing: -0.02em;
       }
 
       .logo-os {
         font-weight: 700;
-        background: linear-gradient(135deg, #34d399 0%, #a78bfa 100%);
+        background: linear-gradient(135deg, #14b8a6 0%, #2563eb 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -56,7 +56,7 @@ export class SpeechOSAboutTab extends LitElement {
 
       .about-description {
         font-size: 14px;
-        color: rgba(255, 255, 255, 0.65);
+        color: #525252;
         line-height: 1.7;
         margin-bottom: 24px;
       }
@@ -74,19 +74,29 @@ export class SpeechOSAboutTab extends LitElement {
         align-items: center;
         gap: 8px;
         padding: 12px 18px;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        background: #0d9488;
         border-radius: 10px;
         color: white;
         font-size: 14px;
         font-weight: 600;
+        letter-spacing: 0.01em;
         text-decoration: none;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        transition: all 0.15s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       }
 
       .about-link:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+        background: #0f766e;
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+      }
+
+      .about-link:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0d9488;
+      }
+
+      .about-link:active {
+        transform: scale(0.98);
       }
     `,
   ];
