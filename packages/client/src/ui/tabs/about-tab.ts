@@ -41,7 +41,7 @@ export class SpeechOSAboutTab extends LitElement {
 
       .about-logo-text {
         font-size: 22px;
-        font-weight: 500;
+        font-weight: 600;
         color: #171717;
         letter-spacing: -0.02em;
       }
