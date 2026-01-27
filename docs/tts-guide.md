@@ -141,7 +141,13 @@ if (tts.isPlaying()) {
 
 ### Voice Selection
 
-Voice IDs are validated server-side. Pass any valid voice ID, or omit to use the server default (George).
+Voice IDs are validated server-side. Pass any valid voice ID, or omit to use the client default (Bella).
+
+### Voice Selection (Widget)
+
+The widget settings include a voice selector. This setting is stored locally and
+applies to widget-based playback (read-aloud and TTS). Backend support for voice
+settings is planned; for now it remains local.
 
 ```typescript
 // Use server default voice
@@ -155,7 +161,7 @@ A default voice ID constant is exported for reference:
 
 ```typescript
 import { DEFAULT_TTS_VOICE_ID } from '@speechos/core';
-// DEFAULT_TTS_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb' (George)
+// DEFAULT_TTS_VOICE_ID = 'EXAVITQu4vr4xnSDxMaL' (Bella)
 ```
 
 ### Language

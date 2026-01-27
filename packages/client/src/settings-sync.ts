@@ -100,7 +100,10 @@ class SettingsSync {
     this.isInitialized = true;
 
     // Subscribe to settings changes
-    this.unsubscribe = events.on("settings:changed", () => {
+    this.unsubscribe = events.on("settings:changed", ({ setting }) => {
+      if (setting === "voice") {
+        return;
+      }
       this.scheduleSyncToServer();
     });
 

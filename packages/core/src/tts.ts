@@ -12,7 +12,7 @@ import { events } from "./events.js";
  * Default TTS voice ID (matches server default).
  * The server validates voice IDs - pass any valid voice ID or omit to use default.
  */
-export const DEFAULT_TTS_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // George
+export const DEFAULT_TTS_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Bella
 
 /**
  * Options for TTS synthesis

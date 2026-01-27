@@ -63,6 +63,18 @@ export {
 export type { AudioSettings } from "./stores/audio-settings.js";
 
 export {
+  getVoiceSettings,
+  setVoiceSettings,
+  getVoiceId,
+  setVoiceId,
+  getVoiceById,
+  getVoiceName,
+  resetVoiceSettings,
+  SUPPORTED_VOICES,
+} from "./stores/voice-settings.js";
+export type { VoiceSettings, VoiceOption } from "./stores/voice-settings.js";
+
+export {
   languageSettings,
   getLanguageSettings,
   getInputLanguageCode,

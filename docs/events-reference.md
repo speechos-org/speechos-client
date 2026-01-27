@@ -16,13 +16,15 @@ Complete reference of all events emitted by SpeechOS.
 | `widget:hide` | `void` | Widget was hidden |
 | `form:focus` | `{ element }` | Text field received focus |
 | `form:blur` | `{ element }` | Text field lost focus |
-| `action:select` | `{ action }` | User selected an action (dictate/edit/command) |
+| `selection:change` | `{ text, element }` | Selected text changed (empty string when cleared) |
+| `action:select` | `{ action }` | User selected an action (dictate/edit/command/read) |
 | `state:change` | `{ state }` | Internal state changed |
 | `settings:changed` | `{ setting }` | User changed a setting |
 | `tts:synthesize:start` | `{ text }` | TTS synthesis request started |
 | `tts:synthesize:complete` | `{ text }` | TTS audio bytes received |
 | `tts:playback:start` | `{ text }` | TTS audio playback started |
 | `tts:playback:complete` | `{ text }` | TTS audio playback finished |
+| `tts:playback:stop` | `{ text }` | TTS audio playback stopped |
 | `tts:error` | `{ code, message, phase }` | TTS error occurred |
 
 ## Event Details
@@ -206,9 +208,25 @@ SpeechOS.events.on('form:blur', ({ element }) => {
 
 - `element: HTMLElement` — The blurred element
 
+### selection:change
+
+Fired when the user changes their text selection.
+
+```typescript
+SpeechOS.events.on('selection:change', ({ text, element }) => {
+  console.log('Selected text:', text);
+  console.log('Selection element:', element);
+});
+```
+
+**Payload:**
+
+- `text: string` — The selected text (empty string when cleared)
+- `element: HTMLElement | null` — The element associated with the selection
+
 ### action:select
 
-Fired when user selects an action (dictate, edit, or command).
+Fired when user selects an action (dictate, edit, command, or read).
 
 ```typescript
 SpeechOS.events.on('action:select', ({ action }) => {
@@ -218,7 +236,7 @@ SpeechOS.events.on('action:select', ({ action }) => {
 
 **Payload:**
 
-- `action: 'dictate' | 'edit' | 'command'` — The selected action
+- `action: 'dictate' | 'edit' | 'command' | 'read'` — The selected action
 
 ### state:change
 
@@ -246,7 +264,7 @@ SpeechOS.events.on('settings:changed', ({ setting }) => {
 
 **Payload:**
 
-- `setting: string` — Name of the setting that changed
+- `setting: string` — Name of the setting that changed (`language`, `smartFormat`, `snippets`, `vocabulary`, `history`, `voice`)
 
 ## TTS Events
 
@@ -309,6 +327,21 @@ events.on('tts:playback:complete', ({ text }) => {
 **Payload:**
 
 - `text: string` — The text that was spoken
+
+### tts:playback:stop
+
+Fired when TTS playback is manually stopped (client package only).
+
+```typescript
+events.on('tts:playback:stop', ({ text }) => {
+  console.log('Playback stopped:', text);
+  hideSpeakingIndicator();
+});
+```
+
+**Payload:**
+
+- `text: string | null` — The text that was playing when stopped (if known)
 
 ### tts:error
 

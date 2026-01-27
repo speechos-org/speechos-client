@@ -20,7 +20,7 @@ describe("tts", () => {
 
   describe("DEFAULT_TTS_VOICE_ID", () => {
     it("should have the correct default voice ID", () => {
-      expect(DEFAULT_TTS_VOICE_ID).toBe("JBFqnCBsd6RMkjVDRZzb");
+      expect(DEFAULT_TTS_VOICE_ID).toBe("EXAVITQu4vr4xnSDxMaL");
     });
   });
 

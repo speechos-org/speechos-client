@@ -21,6 +21,7 @@ SpeechOS.init({
   debug: true,
   zIndex: 999999,
   formDetection: true,
+  readAloud: true,
   commands: [
     { name: 'submit', description: 'Submit the form' }
   ],
@@ -39,8 +40,16 @@ interface SpeechOSClientConfig {
   debug?: boolean;
   zIndex?: number;
   formDetection?: boolean | FormDetectorInterface;
+  readAloud?: boolean | ReadAloudConfig;
   commands?: CommandDefinition[];
   textInputHandler?: TextInputHandlerInterface;
+}
+
+interface ReadAloudConfig {
+  enabled?: boolean;
+  minLength?: number;
+  maxLength?: number | null;
+  showOnSelection?: boolean;
 }
 ```
 
@@ -115,11 +124,13 @@ console.log(state.activeAction);
 
 ```typescript
 interface SpeechOSState {
-  recordingState: 'idle' | 'connecting' | 'recording' | 'processing';
+  recordingState: 'idle' | 'connecting' | 'recording' | 'processing' | 'error';
   isVisible: boolean;
   isConnected: boolean;
-  activeAction: 'dictate' | 'edit' | 'command' | null;
+  activeAction: 'dictate' | 'edit' | 'command' | 'read' | null;
   focusedElement: HTMLElement | null;
+  selectionText: string | null;
+  selectionElement: HTMLElement | null;
   errorMessage: string | null;
 }
 ```
@@ -142,6 +153,20 @@ unsubscribe();
 **Returns:** Function to unsubscribe
 
 See [Events Reference](./events-reference.md) for complete event list.
+
+### Voice Settings (Client)
+
+Local-only voice selection utilities for the widget and TTS playback.
+
+```typescript
+import {
+  getVoiceId,
+  setVoiceId,
+  SUPPORTED_VOICES,
+} from '@speechos/client';
+
+setVoiceId(SUPPORTED_VOICES[0].id);
+```
 
 ### Cleanup
 

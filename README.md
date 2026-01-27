@@ -9,6 +9,7 @@ Add voice input to any web application in minutes. SpeechOS lets users speak ins
 - **Dictation** — Speak to produce formatted text with punctuation and capitalization
 - **Edit** — Give voice instructions to modify existing text (e.g., "make it more formal")
 - **Commands** — Match voice input to custom commands with argument extraction
+- **Read Aloud** — Select text (or focus a text box) and have it read out loud
 - **Works Everywhere** — Browser, React, vanilla JS, and more
 
 ## Quick Start (Browser)
@@ -125,6 +126,7 @@ SpeechOS.init({
   debug: true,                  // Enable console logging
   zIndex: 999999,               // Widget z-index (default: 999999)
   formDetection: true,          // Auto-show widget on text field focus
+  readAloud: true,              // Enable read-aloud for selected text (default: true)
 
   // Voice Commands (shows Command button if provided)
   commands: [
@@ -157,6 +159,14 @@ SpeechOS.events.on('transcription:inserted', ({ text, element }) => {
 // Clean up
 await SpeechOS.destroy();
 ```
+
+## Read Aloud (Widget)
+
+When users select text, the widget shows a **Read** action. If no selection is made, focusing an input/textarea enables **Read** for the entire field.
+
+- Click **Read** to start playback
+- Click the red stop button (same as dictation/edit) to stop playback
+- Voice selection is stored locally via the widget settings
 
 ## Text-to-Speech (TTS)
 
@@ -232,6 +242,7 @@ events.on('tts:synthesize:complete', ({ text }) => { /* audio received */ });
 // Playback events (client only)
 events.on('tts:playback:start', ({ text }) => { /* audio playing */ });
 events.on('tts:playback:complete', ({ text }) => { /* playback finished */ });
+events.on('tts:playback:stop', ({ text }) => { /* playback stopped */ });
 
 // Error handling
 events.on('tts:error', ({ code, message, phase }) => {
