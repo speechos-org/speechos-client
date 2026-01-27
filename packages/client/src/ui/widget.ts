@@ -180,6 +180,7 @@ export class SpeechOSWidget extends LitElement {
   private dragOffset = { x: 0, y: 0 };
   private boundDragMove: ((e: MouseEvent) => void) | null = null;
   private boundDragEnd: (() => void) | null = null;
+  private boundWidgetMouseDown: ((e: MouseEvent) => void) | null = null;
   private static readonly DRAG_THRESHOLD = 5;
   private suppressNextClick = false;
   private boundViewportResizeHandler: (() => void) | null = null;
@@ -194,6 +195,10 @@ export class SpeechOSWidget extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.boundWidgetMouseDown = this.handleWidgetMouseDown.bind(this);
+    this.addEventListener("mousedown", this.boundWidgetMouseDown, {
+      capture: true,
+    });
     this.modalElement = document.createElement("speechos-settings-modal");
     this.modalElement.addEventListener("modal-close", () => {
       this.settingsOpen = false;
@@ -312,6 +317,12 @@ export class SpeechOSWidget extends LitElement {
     if (this.boundDragEnd) {
       document.removeEventListener("mouseup", this.boundDragEnd);
       this.boundDragEnd = null;
+    }
+    if (this.boundWidgetMouseDown) {
+      this.removeEventListener("mousedown", this.boundWidgetMouseDown, {
+        capture: true,
+      });
+      this.boundWidgetMouseDown = null;
     }
     if (this.boundViewportResizeHandler && window.visualViewport) {
       window.visualViewport.removeEventListener(
@@ -710,6 +721,31 @@ export class SpeechOSWidget extends LitElement {
       document.removeEventListener("mouseup", this.boundDragEnd);
       this.boundDragEnd = null;
     }
+  }
+
+  private handleWidgetMouseDown(event: MouseEvent): void {
+    if (event.defaultPrevented || event.button !== 0) {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    if (target.closest("[data-speechos-allow-focus]")) {
+      return;
+    }
+
+    if (
+      target.closest(
+        "input, textarea, select, [contenteditable]:not([contenteditable=\"false\"])"
+      )
+    ) {
+      return;
+    }
+
+    event.preventDefault();
   }
 
   private applyCustomPosition(): void {

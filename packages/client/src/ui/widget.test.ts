@@ -263,6 +263,40 @@ describe("Widget positioning", () => {
       expect(state.getState().isVisible).toBe(false);
     });
   });
+
+  describe("focus retention", () => {
+    beforeEach(() => {
+      mockDesktopDevice();
+    });
+
+    it("should prevent default focus shift on widget mouse interactions", async () => {
+      await import("./widget.js");
+
+      widget.remove();
+      widget = document.createElement("speechos-widget") as HTMLElement;
+      document.body.appendChild(widget);
+
+      state.show();
+
+      await (widget as SpeechOSWidget).updateComplete;
+
+      const micButton = (widget as SpeechOSWidget).shadowRoot?.querySelector(
+        "speechos-mic-button"
+      );
+
+      expect(micButton).toBeTruthy();
+
+      const event = new MouseEvent("mousedown", {
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+      });
+
+      micButton?.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+    });
+  });
 });
 
 describe("Widget no-audio warning", () => {
