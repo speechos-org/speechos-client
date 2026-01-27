@@ -272,6 +272,32 @@ export interface SpeechOSEventMap {
   "settings:tokenExpired": void;
 
   // ============================================
+  // TTS synthesis events (core)
+  // ============================================
+  /** Emitted when a TTS synthesis request begins */
+  "tts:synthesize:start": { text: string };
+  /** Emitted when audio bytes are fully received from the server */
+  "tts:synthesize:complete": { text: string };
+
+  // ============================================
+  // TTS playback events (client only)
+  // ============================================
+  /** Emitted when audio playback begins */
+  "tts:playback:start": { text: string };
+  /** Emitted when audio playback finishes */
+  "tts:playback:complete": { text: string };
+
+  // ============================================
+  // TTS error event
+  // ============================================
+  /** Emitted when an error occurs during TTS synthesis or playback */
+  "tts:error": {
+    code: string;
+    message: string;
+    phase: "synthesize" | "playback";
+  };
+
+  // ============================================
   // Error events
   // ============================================
   /** Emitted when an error occurs */

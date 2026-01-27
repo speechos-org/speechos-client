@@ -158,12 +158,96 @@ SpeechOS.events.on('transcription:inserted', ({ text, element }) => {
 await SpeechOS.destroy();
 ```
 
+## Text-to-Speech (TTS)
+
+Convert text to speech and play it back or get raw audio bytes.
+
+### Play Audio Immediately
+
+```typescript
+import { tts } from '@speechos/client';
+
+// Speak with default voice
+await tts.speak('Hello, welcome to SpeechOS!');
+
+// With options
+await tts.speak('Bonjour!', { language: 'fr' });
+
+// Use a specific voice (server validates)
+await tts.speak('Hello!', { voiceId: 'some-voice-id' });
+
+// Control playback
+tts.stop();           // Stop current audio
+tts.isPlaying();      // Check if playing
+```
+
+### Get Raw Audio Bytes
+
+```typescript
+import { tts } from '@speechos/core';
+
+// Get audio as ArrayBuffer (MP3 format)
+const result = await tts.synthesize('Hello world');
+console.log(result.audio);       // ArrayBuffer
+console.log(result.contentType); // 'audio/mpeg'
+
+// Stream audio chunks for progressive loading
+for await (const chunk of tts.stream('Long text...')) {
+  // Process each Uint8Array chunk
+}
+```
+
+Voice validation is handled server-side. Invalid voice IDs will return an error.
+
+### React Hook
+
+```tsx
+import { useTTS } from '@speechos/react';
+
+function TTSButton() {
+  const { speak, stop, isSynthesizing, isPlaying, error } = useTTS();
+
+  const handleSpeak = async () => {
+    await speak('Hello from React!');
+  };
+
+  return (
+    <div>
+      <button onClick={isPlaying ? stop : handleSpeak} disabled={isSynthesizing}>
+        {isSynthesizing ? 'Loading...' : isPlaying ? 'Stop' : 'Speak'}
+      </button>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+    </div>
+  );
+}
+```
+
+### TTS Events
+
+```typescript
+// Synthesis events
+events.on('tts:synthesize:start', ({ text }) => { /* request started */ });
+events.on('tts:synthesize:complete', ({ text }) => { /* audio received */ });
+
+// Playback events (client only)
+events.on('tts:playback:start', ({ text }) => { /* audio playing */ });
+events.on('tts:playback:complete', ({ text }) => { /* playback finished */ });
+
+// Error handling
+events.on('tts:error', ({ code, message, phase }) => {
+  console.error(`TTS ${phase} error: ${message}`);
+});
+```
+
+See [TTS Guide](./docs/tts-guide.md) for detailed documentation.
+
 ## Documentation
 
 ### Guides
 
 - **[Widget Guide](./docs/widget-guide.md)** — Detailed widget configuration, positioning, and events
 - **[Voice Commands](./docs/voice-commands.md)** — Set up and handle custom voice commands
+- **[TTS Guide](./docs/tts-guide.md)** — Text-to-speech synthesis and playback
 - **[React Integration](./docs/react-integration.md)** — React hooks, components, and patterns
 - **[Advanced Topics](./docs/advanced.md)** — Custom text handlers, headless usage, and more
 

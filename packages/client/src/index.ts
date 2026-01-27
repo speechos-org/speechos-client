@@ -15,7 +15,12 @@ export {
   setConfig,
   resetConfig,
   DEFAULT_HOST,
+  DEFAULT_TTS_VOICE_ID,
 } from "@speechos/core";
+
+// TTS with browser playback support
+export { tts, TTSPlayer } from "./tts-player.js";
+export type { SpeakOptions, TTSOptions, TTSResult, TTSErrorCode, CombinedTTS } from "./tts-player.js";
 
 // Re-export core types
 export type {

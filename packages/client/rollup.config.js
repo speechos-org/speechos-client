@@ -12,9 +12,10 @@ const footer = `
   // Expose SpeechOS class directly on window
   if (typeof window !== 'undefined') {
     window.SpeechOS = SpeechOSNamespace.SpeechOS;
+    // Note: events is already available via static getter on SpeechOS class
     window.SpeechOS.VERSION = SpeechOSNamespace.VERSION;
-    window.SpeechOS.events = SpeechOSNamespace.events;
     window.SpeechOS.state = SpeechOSNamespace.state;
+    window.SpeechOS.tts = SpeechOSNamespace.tts;
     window.SpeechOS.getConfig = SpeechOSNamespace.getConfig;
     window.SpeechOS.setConfig = SpeechOSNamespace.setConfig;
     window.SpeechOS.resetConfig = SpeechOSNamespace.resetConfig;

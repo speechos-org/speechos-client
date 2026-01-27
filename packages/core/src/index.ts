@@ -25,6 +25,10 @@ export { Deferred, websocket } from "./websocket.js";
 export { getBackend } from "./backend.js";
 export type { VoiceBackend } from "./backend.js";
 
+// TTS module
+export { tts, TTSClient, DEFAULT_TTS_VOICE_ID } from "./tts.js";
+export type { TTSOptions, TTSResult, TTSErrorCode } from "./tts.js";
+
 // Types
 export type {
   SpeechOSCoreConfig,
