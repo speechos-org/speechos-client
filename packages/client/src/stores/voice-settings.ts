@@ -148,3 +148,10 @@ export function resetVoiceSettings(): void {
     // Ignore localStorage errors
   }
 }
+
+/**
+ * Reset memory cache (for testing)
+ */
+export function resetMemoryCache(): void {
+  memoryCache = null;
+}

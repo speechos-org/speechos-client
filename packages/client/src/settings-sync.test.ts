@@ -8,6 +8,7 @@ import { resetMemoryCache as resetVocabularyCache } from "./stores/vocabulary-st
 import { resetMemoryCache as resetSnippetsCache } from "./stores/snippets-store.js";
 import { resetMemoryCache as resetLanguageCache } from "./stores/language-settings.js";
 import { resetMemoryCache as resetTranscriptCache } from "./stores/transcript-store.js";
+import { resetMemoryCache as resetVoiceCache, getVoiceId, SUPPORTED_VOICES } from "./stores/voice-settings.js";
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -25,6 +26,7 @@ vi.mock("@speechos/core", () => ({
     on: vi.fn(() => vi.fn()), // Return unsubscribe function
     emit: vi.fn(),
   },
+  DEFAULT_TTS_VOICE_ID: "EXAVITQu4vr4xnSDxMaL", // Bella (default voice)
 }));
 
 // Import mocked modules
@@ -38,6 +40,7 @@ describe("SettingsSync", () => {
     resetSnippetsCache();
     resetLanguageCache();
     resetTranscriptCache();
+    resetVoiceCache();
     vi.clearAllMocks();
     vi.useFakeTimers();
   });
@@ -350,6 +353,97 @@ describe("SettingsSync", () => {
 
       // No call should have been made
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("voice settings sync", () => {
+    it("should include voice settings in sync payload", async () => {
+      vi.mocked(getSettingsToken).mockReturnValue("mock-token");
+
+      // Set up localStorage with voice settings
+      const targetVoice = SUPPORTED_VOICES[0]; // George
+      localStorage.setItem(
+        "speechos_voice_settings",
+        JSON.stringify({ voiceId: targetVoice.id })
+      );
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+      });
+
+      settingsSync.scheduleSyncToServer();
+      await vi.advanceTimersByTimeAsync(2000);
+
+      // Verify the body contains voice settings
+      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(callBody.voice).toBeDefined();
+      expect(callBody.voice.voiceId).toBe(targetVoice.id);
+    });
+
+    it("should merge voice settings from server", async () => {
+      vi.mocked(getSettingsToken).mockReturnValue("mock-token");
+      const targetVoice = SUPPORTED_VOICES[1]; // Rachel
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          language: {
+            inputLanguageCode: "en-US",
+            outputLanguageCode: "en-US",
+            smartFormat: true,
+          },
+          voice: {
+            voiceId: targetVoice.id,
+          },
+          vocabulary: [],
+          snippets: [],
+          history: [],
+          lastSyncedAt: "2024-01-01T00:00:00Z",
+        }),
+      });
+
+      await settingsSync.init();
+
+      // Voice should be updated from server
+      expect(getVoiceId()).toBe(targetVoice.id);
+    });
+
+    it("should not overwrite voice when server returns empty voiceId", async () => {
+      vi.mocked(getSettingsToken).mockReturnValue("mock-token");
+
+      // Set local voice to George
+      const localVoice = SUPPORTED_VOICES[0];
+      localStorage.setItem(
+        "speechos_voice_settings",
+        JSON.stringify({ voiceId: localVoice.id })
+      );
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          language: {
+            inputLanguageCode: "en-US",
+            outputLanguageCode: "en-US",
+            smartFormat: true,
+          },
+          voice: {
+            voiceId: "", // Empty voice from server
+          },
+          vocabulary: [],
+          snippets: [],
+          history: [],
+          lastSyncedAt: "2024-01-01T00:00:00Z",
+        }),
+      });
+
+      await settingsSync.init();
+
+      // Local voice should be preserved when server has empty voiceId
+      expect(getVoiceId()).toBe(localVoice.id);
     });
   });
 });

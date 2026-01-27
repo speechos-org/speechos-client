@@ -1,6 +1,6 @@
 /**
  * Settings sync manager
- * Syncs user settings (language, vocabulary, snippets, history) with the server
+ * Syncs user settings (language, voice, vocabulary, snippets, history) with the server
  */
 
 import {
@@ -20,6 +20,7 @@ import {
 } from "./stores/vocabulary-store.js";
 import { getSnippets, setSnippets, type Snippet } from "./stores/snippets-store.js";
 import { getTranscripts, setTranscripts } from "./stores/transcript-store.js";
+import { getVoiceSettings, setVoiceSettings } from "./stores/voice-settings.js";
 
 // Sync debounce delay in milliseconds
 const SYNC_DEBOUNCE_MS = 2000;
@@ -52,6 +53,9 @@ interface ServerSettings {
     inputLanguageCode: string;
     outputLanguageCode: string;
     smartFormat: boolean;
+  };
+  voice?: {
+    voiceId: string;
   };
   vocabulary: VocabularyTerm[];
   snippets: Snippet[];
@@ -100,10 +104,7 @@ class SettingsSync {
     this.isInitialized = true;
 
     // Subscribe to settings changes
-    this.unsubscribe = events.on("settings:changed", ({ setting }) => {
-      if (setting === "voice") {
-        return;
-      }
+    this.unsubscribe = events.on("settings:changed", () => {
       this.scheduleSyncToServer();
     });
 
@@ -220,6 +221,11 @@ class SettingsSync {
       setLanguageSettings(serverSettings.language);
     }
 
+    // Voice settings - server wins (only if voiceId is set)
+    if (serverSettings.voice?.voiceId) {
+      setVoiceSettings({ voiceId: serverSettings.voice.voiceId });
+    }
+
     // Vocabulary - server wins
     if (serverSettings.vocabulary) {
       setVocabulary(serverSettings.vocabulary);
@@ -271,6 +277,7 @@ class SettingsSync {
 
     try {
       const languageSettings = getLanguageSettings();
+      const voiceSettings = getVoiceSettings();
       const vocabulary = getVocabulary();
       const snippets = getSnippets();
       const transcripts = getTranscripts();
@@ -280,6 +287,9 @@ class SettingsSync {
           inputLanguageCode: languageSettings.inputLanguageCode,
           outputLanguageCode: languageSettings.outputLanguageCode,
           smartFormat: languageSettings.smartFormat,
+        },
+        voice: {
+          voiceId: voiceSettings.voiceId,
         },
         vocabulary: vocabulary.map((v) => ({
           id: v.id,
