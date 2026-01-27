@@ -6,7 +6,7 @@
 import { LitElement, html, css, type CSSResultGroup } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { themeStyles, animations } from "./styles/theme.js";
-import { dictateIcon, editIcon, commandIcon } from "./icons.js";
+import { dictateIcon, editIcon, commandIcon, readIcon, stopIcon } from "./icons.js";
 import { events, type SpeechOSAction } from "@speechos/core";
 import { getClientConfig } from "../config.js";
 
@@ -89,6 +89,18 @@ export class SpeechOSActionBubbles extends LitElement {
         box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
       }
 
+      /* Read button - Blue */
+      .action-button.read {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      }
+
+      .action-button.read:hover {
+        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+      }
+
       .action-button:active {
         transform: translateY(0);
       }
@@ -139,6 +151,12 @@ export class SpeechOSActionBubbles extends LitElement {
   @property({ type: Boolean })
   visible = false;
 
+  @property({ type: Boolean })
+  readAvailable = false;
+
+  @property({ type: Boolean })
+  readActive = false;
+
   /**
    * Get the list of available actions based on configuration.
    * Command button only appears if commands are configured.
@@ -164,6 +182,14 @@ export class SpeechOSActionBubbles extends LitElement {
         id: "command",
         label: "Command",
         icon: commandIcon(),
+      });
+    }
+
+    if (this.readAvailable) {
+      baseActions.push({
+        id: "read",
+        label: this.readActive ? "Stop" : "Read",
+        icon: this.readActive ? stopIcon(16) : readIcon(),
       });
     }
 

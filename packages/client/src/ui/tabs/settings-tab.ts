@@ -6,7 +6,7 @@ import { LitElement, html, css, type CSSResultGroup } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { events } from "@speechos/core";
 import { themeStyles } from "../styles/theme.js";
-import { globeIcon, micIcon, sparklesIcon } from "../icons.js";
+import { globeIcon, micIcon, sparklesIcon, readIcon } from "../icons.js";
 import {
   getAudioDeviceId,
   setAudioDeviceId,
@@ -21,6 +21,11 @@ import {
   setSmartFormatEnabled,
   SUPPORTED_LANGUAGES,
 } from "../../stores/language-settings.js";
+import {
+  getVoiceId,
+  setVoiceId,
+  SUPPORTED_VOICES,
+} from "../../stores/voice-settings.js";
 import "../audio-level-meter.js";
 
 @customElement("speechos-settings-tab")
@@ -225,6 +230,9 @@ export class SpeechOSSettingsTab extends LitElement {
   private selectedOutputLanguageCode: string = "en-US";
 
   @state()
+  private selectedVoiceId: string = "";
+
+  @state()
   private isTestingMic: boolean = false;
 
   @state()
@@ -276,6 +284,7 @@ export class SpeechOSSettingsTab extends LitElement {
     this.selectedInputLanguageCode = getInputLanguageCode();
     this.selectedOutputLanguageCode = getOutputLanguageCode();
     this.smartFormatEnabled = getSmartFormatEnabled();
+    this.selectedVoiceId = getVoiceId();
     await this.loadAudioDevices();
   }
 
@@ -352,6 +361,13 @@ export class SpeechOSSettingsTab extends LitElement {
     }
   }
 
+  private handleVoiceChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.selectedVoiceId = select.value;
+    setVoiceId(this.selectedVoiceId);
+    this.showSaved();
+  }
+
   private handleSmartFormatToggle(): void {
     this.smartFormatEnabled = !this.smartFormatEnabled;
     setSmartFormatEnabled(this.smartFormatEnabled);
@@ -411,6 +427,41 @@ export class SpeechOSSettingsTab extends LitElement {
             (device) => html`
               <option value="${device.deviceId}">
                 ${device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+              </option>
+            `
+          )}
+        </select>
+        <div class="settings-select-arrow">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderVoiceSelector() {
+    return html`
+      <div class="settings-select-wrapper">
+        <select
+          class="settings-select"
+          .value="${this.selectedVoiceId}"
+          @change="${this.handleVoiceChange}"
+        >
+          ${SUPPORTED_VOICES.map(
+            (voice) => html`
+              <option
+                value="${voice.id}"
+                ?selected="${voice.id === this.selectedVoiceId}"
+              >
+                ${voice.name}
               </option>
             `
           )}
@@ -514,6 +565,17 @@ export class SpeechOSSettingsTab extends LitElement {
             <div class="settings-toggle-knob"></div>
           </div>
         </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <span class="settings-section-icon">${readIcon(18)}</span>
+          <span class="settings-section-title">Voice</span>
+        </div>
+        <div class="settings-section-description">
+          Choose the voice used for text-to-speech playback.
+        </div>
+        ${this.renderVoiceSelector()}
       </div>
 
       <div class="settings-section">

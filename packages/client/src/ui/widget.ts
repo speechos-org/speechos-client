@@ -4,37 +4,47 @@
  */
 
 import {
+  events,
+  getBackend,
+  getConfig,
+  state,
+  type CommandResult,
+  type SpeechOSEventMap,
+  type SpeechOSState,
+  type UnsubscribeFn,
+} from "@speechos/core";
+import {
   LitElement,
-  html,
   css,
+  html,
   type CSSResultGroup,
   type TemplateResult,
 } from "lit";
 import { customElement, state as litState } from "lit/decorators.js";
-import { themeStyles, animations } from "./styles/theme.js";
 import {
-  state,
-  events,
-  getConfig,
-  getBackend,
-  type SpeechOSState,
-  type UnsubscribeFn,
-  type CommandResult,
-  type SpeechOSEventMap,
-} from "@speechos/core";
-import { getClientConfig, isAlwaysVisible, useExternalSettings } from "../config.js";
+  getFieldSelection,
+  insertTextIntoField,
+  setFieldText,
+} from "text-field-edit";
+import {
+  getClientConfig,
+  getReadAloudConfig,
+  isAlwaysVisible,
+  useExternalSettings,
+} from "../config.js";
 import { getSessionSettings } from "../speechos.js";
 import { transcriptStore } from "../stores/transcript-store.js";
-import { insertTextIntoField, setFieldText, getFieldSelection } from "text-field-edit";
+import { tts } from "../tts-player.js";
+import { animations, themeStyles } from "./styles/theme.js";
 
 // Import child components
-import "./mic-button.js";
 import "./action-bubbles.js";
+import "./dictation-output-modal.js";
+import type { DictationOutputModalMode } from "./dictation-output-modal.js";
+import "./edit-help-modal.js";
+import "./mic-button.js";
 import "./settings-button.js";
 import "./settings-modal.js";
-import "./dictation-output-modal.js";
-import "./edit-help-modal.js";
-import type { DictationOutputModalMode } from "./dictation-output-modal.js";
 
 /**
  * Minimum duration to show the connecting animation (in milliseconds).
@@ -152,7 +162,11 @@ export class SpeechOSWidget extends LitElement {
   private editHelpModalOpen = false;
 
   @litState()
-  private actionFeedback: "command-success" | "command-none" | "edit-empty" | null = null;
+  private actionFeedback:
+    | "command-success"
+    | "command-none"
+    | "edit-empty"
+    | null = null;
 
   @litState()
   private showNoAudioWarning = false;
@@ -160,8 +174,15 @@ export class SpeechOSWidget extends LitElement {
   @litState()
   private isErrorRetryable = true;
 
+  @litState()
+  private isReading = false;
+
   private stateUnsubscribe?: UnsubscribeFn;
   private errorEventUnsubscribe?: UnsubscribeFn;
+  private ttsStartUnsubscribe?: UnsubscribeFn;
+  private ttsCompleteUnsubscribe?: UnsubscribeFn;
+  private ttsStopUnsubscribe?: UnsubscribeFn;
+  private ttsErrorUnsubscribe?: UnsubscribeFn;
   private dictationTargetElement: HTMLElement | null = null;
   private editTargetElement: HTMLElement | null = null;
   private dictationCursorStart: number | null = null;
@@ -180,6 +201,7 @@ export class SpeechOSWidget extends LitElement {
   private dragOffset = { x: 0, y: 0 };
   private boundDragMove: ((e: MouseEvent) => void) | null = null;
   private boundDragEnd: (() => void) | null = null;
+  private boundWidgetMouseDown: ((e: MouseEvent) => void) | null = null;
   private static readonly DRAG_THRESHOLD = 5;
   private suppressNextClick = false;
   private boundViewportResizeHandler: (() => void) | null = null;
@@ -194,6 +216,10 @@ export class SpeechOSWidget extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.boundWidgetMouseDown = this.handleWidgetMouseDown.bind(this);
+    this.addEventListener("mousedown", this.boundWidgetMouseDown, {
+      capture: true,
+    });
     this.modalElement = document.createElement("speechos-settings-modal");
     this.modalElement.addEventListener("modal-close", () => {
       this.settingsOpen = false;
@@ -203,7 +229,7 @@ export class SpeechOSWidget extends LitElement {
 
     // Mount dictation output modal
     this.dictationModalElement = document.createElement(
-      "speechos-dictation-output-modal"
+      "speechos-dictation-output-modal",
     );
     this.dictationModalElement.addEventListener("modal-close", () => {
       this.dictationModalOpen = false;
@@ -212,7 +238,7 @@ export class SpeechOSWidget extends LitElement {
 
     // Mount edit help modal
     this.editHelpModalElement = document.createElement(
-      "speechos-edit-help-modal"
+      "speechos-edit-help-modal",
     );
     this.editHelpModalElement.addEventListener("modal-close", () => {
       this.editHelpModalOpen = false;
@@ -241,15 +267,73 @@ export class SpeechOSWidget extends LitElement {
       this.updatePosition();
     });
 
-    this.errorEventUnsubscribe = events.on("error", (payload: SpeechOSEventMap["error"]) => {
+    this.errorEventUnsubscribe = events.on(
+      "error",
+      (payload: SpeechOSEventMap["error"]) => {
+        if (
+          this.widgetState.recordingState !== "idle" &&
+          this.widgetState.recordingState !== "error"
+        ) {
+          // Check if this is a non-retryable error (e.g., CSP blocked connection)
+          this.isErrorRetryable = payload.code !== "connection_blocked";
+          state.setError(payload.message);
+          getBackend()
+            .disconnect()
+            .catch(() => {});
+        }
+      },
+    );
+
+    this.ttsStartUnsubscribe = events.on("tts:playback:start", () => {
+      const readConfig = getReadAloudConfig();
+      if (!readConfig.enabled) {
+        return;
+      }
+      this.isReading = true;
+      const currentState = state.getState();
       if (
-        this.widgetState.recordingState !== "idle" &&
-        this.widgetState.recordingState !== "error"
+        currentState.recordingState === "idle" &&
+        currentState.activeAction !== "read"
       ) {
-        // Check if this is a non-retryable error (e.g., CSP blocked connection)
-        this.isErrorRetryable = payload.code !== "connection_blocked";
-        state.setError(payload.message);
-        getBackend().disconnect().catch(() => {});
+        state.setActiveAction("read");
+      }
+    });
+
+    this.ttsCompleteUnsubscribe = events.on("tts:playback:complete", () => {
+      const readConfig = getReadAloudConfig();
+      if (!readConfig.enabled) {
+        return;
+      }
+      this.isReading = false;
+      const currentState = state.getState();
+      if (currentState.activeAction === "read") {
+        state.setActiveAction(null);
+      }
+    });
+
+    this.ttsStopUnsubscribe = events.on("tts:playback:stop", () => {
+      const readConfig = getReadAloudConfig();
+      if (!readConfig.enabled) {
+        return;
+      }
+      this.isReading = false;
+      const currentState = state.getState();
+      if (currentState.activeAction === "read") {
+        state.setActiveAction(null);
+      }
+    });
+
+    this.ttsErrorUnsubscribe = events.on("tts:error", ({ phase }) => {
+      if (phase === "playback") {
+        const readConfig = getReadAloudConfig();
+        if (!readConfig.enabled) {
+          return;
+        }
+        this.isReading = false;
+        const currentState = state.getState();
+        if (currentState.activeAction === "read") {
+          state.setActiveAction(null);
+        }
       }
     });
 
@@ -262,7 +346,7 @@ export class SpeechOSWidget extends LitElement {
       this.boundViewportResizeHandler = this.handleViewportResize.bind(this);
       window.visualViewport.addEventListener(
         "resize",
-        this.boundViewportResizeHandler
+        this.boundViewportResizeHandler,
       );
     }
 
@@ -297,11 +381,23 @@ export class SpeechOSWidget extends LitElement {
     if (this.errorEventUnsubscribe) {
       this.errorEventUnsubscribe();
     }
+    if (this.ttsStartUnsubscribe) {
+      this.ttsStartUnsubscribe();
+    }
+    if (this.ttsCompleteUnsubscribe) {
+      this.ttsCompleteUnsubscribe();
+    }
+    if (this.ttsStopUnsubscribe) {
+      this.ttsStopUnsubscribe();
+    }
+    if (this.ttsErrorUnsubscribe) {
+      this.ttsErrorUnsubscribe();
+    }
     if (this.boundClickOutsideHandler) {
       document.removeEventListener(
         "click",
         this.boundClickOutsideHandler,
-        true
+        true,
       );
       this.boundClickOutsideHandler = null;
     }
@@ -313,10 +409,16 @@ export class SpeechOSWidget extends LitElement {
       document.removeEventListener("mouseup", this.boundDragEnd);
       this.boundDragEnd = null;
     }
+    if (this.boundWidgetMouseDown) {
+      this.removeEventListener("mousedown", this.boundWidgetMouseDown, {
+        capture: true,
+      });
+      this.boundWidgetMouseDown = null;
+    }
     if (this.boundViewportResizeHandler && window.visualViewport) {
       window.visualViewport.removeEventListener(
         "resize",
-        this.boundViewportResizeHandler
+        this.boundViewportResizeHandler,
       );
       this.boundViewportResizeHandler = null;
     }
@@ -331,16 +433,28 @@ export class SpeechOSWidget extends LitElement {
     if (changedProperties.has("settingsOpen") && this.modalElement) {
       (this.modalElement as any).open = this.settingsOpen;
     }
-    if (changedProperties.has("dictationModalOpen") && this.dictationModalElement) {
+    if (
+      changedProperties.has("dictationModalOpen") &&
+      this.dictationModalElement
+    ) {
       (this.dictationModalElement as any).open = this.dictationModalOpen;
     }
-    if (changedProperties.has("dictationModalText") && this.dictationModalElement) {
+    if (
+      changedProperties.has("dictationModalText") &&
+      this.dictationModalElement
+    ) {
       (this.dictationModalElement as any).text = this.dictationModalText;
     }
-    if (changedProperties.has("dictationModalMode") && this.dictationModalElement) {
+    if (
+      changedProperties.has("dictationModalMode") &&
+      this.dictationModalElement
+    ) {
       (this.dictationModalElement as any).mode = this.dictationModalMode;
     }
-    if (changedProperties.has("editHelpModalOpen") && this.editHelpModalElement) {
+    if (
+      changedProperties.has("editHelpModalOpen") &&
+      this.editHelpModalElement
+    ) {
       (this.editHelpModalElement as any).open = this.editHelpModalOpen;
     }
   }
@@ -351,12 +465,12 @@ export class SpeechOSWidget extends LitElement {
     // Check if clicked element or ancestor has no-close attribute (before any other checks)
     const hasNoCloseAttr =
       target instanceof Element && target.closest("[data-speechos-no-close]");
-    console.log("[SpeechOS] handleClickOutside called", {
-      isExpanded: this.widgetState.isExpanded,
-      recordingState: this.widgetState.recordingState,
-      target: event.target,
-      hasNoCloseAttr: !!hasNoCloseAttr,
-    });
+    // console.log("[SpeechOS] handleClickOutside called", {
+    //   isExpanded: this.widgetState.isExpanded,
+    //   recordingState: this.widgetState.recordingState,
+    //   target: event.target,
+    //   hasNoCloseAttr: !!hasNoCloseAttr,
+    // });
     if (hasNoCloseAttr) {
       console.log("[SpeechOS] Skipping due to data-speechos-no-close");
       return;
@@ -552,7 +666,7 @@ export class SpeechOSWidget extends LitElement {
       try {
         const transcription: string = await this.withMinDisplayTime(
           backend.stopVoiceSession(),
-          300
+          300,
         );
         // Track result for consecutive failure detection
         this.trackActionResult(!!transcription);
@@ -571,7 +685,9 @@ export class SpeechOSWidget extends LitElement {
           } else {
             // No target element - show dictation output modal
             if (getConfig().debug) {
-              console.log("[SpeechOS] No target element, showing dictation modal");
+              console.log(
+                "[SpeechOS] No target element, showing dictation modal",
+              );
             }
             this.dictationModalText = transcription;
             this.dictationModalMode = "dictation";
@@ -593,6 +709,10 @@ export class SpeechOSWidget extends LitElement {
         }
       }
     }
+  }
+
+  private handleStopReading(): void {
+    tts.stop();
   }
 
   private async handleCancelOperation(): Promise<void> {
@@ -635,7 +755,7 @@ export class SpeechOSWidget extends LitElement {
     if (useExternalSettings()) {
       const host = getConfig().host;
       const fullUrl = `${host}/a/extension-settings`;
-      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+      window.open(fullUrl, "_blank", "noopener,noreferrer");
     } else {
       this.settingsOpen = true;
     }
@@ -712,6 +832,31 @@ export class SpeechOSWidget extends LitElement {
     }
   }
 
+  private handleWidgetMouseDown(event: MouseEvent): void {
+    if (event.defaultPrevented || event.button !== 0) {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    if (target.closest("[data-speechos-allow-focus]")) {
+      return;
+    }
+
+    if (
+      target.closest(
+        'input, textarea, select, [contenteditable]:not([contenteditable="false"])',
+      )
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+  }
+
   private applyCustomPosition(): void {
     if (this.customPosition) {
       this.classList.add("custom-position");
@@ -763,7 +908,7 @@ export class SpeechOSWidget extends LitElement {
   private verifyInsertionApplied(
     target: HTMLElement,
     insertedText: string,
-    originalContent: string
+    originalContent: string,
   ): void {
     // Use requestAnimationFrame to check after DOM updates
     requestAnimationFrame(() => {
@@ -771,7 +916,8 @@ export class SpeechOSWidget extends LitElement {
       let currentContent = "";
 
       if (tagName === "input" || tagName === "textarea") {
-        currentContent = (target as HTMLInputElement | HTMLTextAreaElement).value;
+        currentContent = (target as HTMLInputElement | HTMLTextAreaElement)
+          .value;
       } else if (target.isContentEditable) {
         currentContent = target.textContent || "";
       }
@@ -785,11 +931,14 @@ export class SpeechOSWidget extends LitElement {
 
       if (!insertionApplied) {
         if (getConfig().debug) {
-          console.log("[SpeechOS] Dictation failed to insert, showing fallback modal", {
-            insertedText,
-            currentContent,
-            originalContent,
-          });
+          console.log(
+            "[SpeechOS] Dictation failed to insert, showing fallback modal",
+            {
+              insertedText,
+              currentContent,
+              originalContent,
+            },
+          );
         }
         // Show fallback modal with dictation mode styling
         this.dictationModalText = insertedText;
@@ -804,6 +953,11 @@ export class SpeechOSWidget extends LitElement {
 
     // Clear any existing command feedback when a new action is selected
     this.clearActionFeedback();
+
+    if (action === "read") {
+      this.handleReadAction();
+      return;
+    }
 
     state.setActiveAction(action);
     if (action === "dictate") {
@@ -826,9 +980,78 @@ export class SpeechOSWidget extends LitElement {
     }
   }
 
+  private async handleReadAction(): Promise<void> {
+    if (this.isReading) {
+      tts.stop();
+      return;
+    }
+
+    const readConfig = getReadAloudConfig();
+    if (!readConfig.enabled) {
+      return;
+    }
+
+    const selectionText = (this.widgetState.selectionText || "").trim();
+    let textToRead = selectionText;
+
+    if (!textToRead) {
+      const focusedElement = this.widgetState.focusedElement;
+      if (focusedElement && this.isTextBoxElement(focusedElement)) {
+        const tagName = focusedElement.tagName.toLowerCase();
+        if (tagName === "input" || tagName === "textarea") {
+          textToRead = (
+            focusedElement as HTMLInputElement | HTMLTextAreaElement
+          ).value;
+        }
+      }
+    }
+
+    textToRead = textToRead.trim();
+    if (textToRead.length < readConfig.minLength) {
+      return;
+    }
+
+    if (
+      readConfig.maxLength !== null &&
+      textToRead.length > readConfig.maxLength
+    ) {
+      textToRead = textToRead.slice(0, readConfig.maxLength);
+    }
+
+    state.setState({ isExpanded: false, activeAction: "read" });
+
+    try {
+      this.isReading = true;
+      await tts.speak(textToRead);
+    } catch (error) {
+      this.isReading = false;
+      if (getConfig().debug) {
+        console.warn("[SpeechOS] Read-aloud failed:", error);
+      }
+    }
+  }
+
+  private isTextBoxElement(element: HTMLElement): boolean {
+    const tagName = element.tagName.toLowerCase();
+    if (tagName === "input") {
+      const type = (element as HTMLInputElement).type?.toLowerCase() || "text";
+      const excludedTypes = [
+        "checkbox",
+        "radio",
+        "submit",
+        "button",
+        "reset",
+        "file",
+        "hidden",
+      ];
+      return !excludedTypes.includes(type);
+    }
+    return tagName === "textarea";
+  }
+
   private async withMinDisplayTime<T>(
     operation: Promise<T>,
-    minTime: number
+    minTime: number,
   ): Promise<T> {
     const [result] = await Promise.all([
       operation,
@@ -998,7 +1221,7 @@ export class SpeechOSWidget extends LitElement {
     try {
       const editedText: string = await this.withMinDisplayTime(
         backend.requestEditText(originalContent),
-        300
+        300,
       );
 
       // Check if server returned no change (couldn't understand edit)
@@ -1086,19 +1309,31 @@ export class SpeechOSWidget extends LitElement {
     try {
       const results: CommandResult[] = await this.withMinDisplayTime(
         backend.requestCommand(commands),
-        300
+        300,
       );
 
       // Track result - empty array means no commands matched (possibly no audio)
       this.trackActionResult(results.length > 0);
 
       // Get input text from the backend if available
-      const inputText = (backend as { getLastInputText?: () => string | undefined }).getLastInputText?.();
+      const inputText = (
+        backend as { getLastInputText?: () => string | undefined }
+      ).getLastInputText?.();
 
       // Save to transcript store - format display text for multiple commands
-      const displayText = results.length > 0
-        ? results.map(r => `${r.name}${Object.keys(r.arguments).length > 0 ? `: ${JSON.stringify(r.arguments)}` : ""}`).join(" | ")
-        : "No command matched";
+      const displayText =
+        results.length > 0
+          ? results
+              .map(
+                (r) =>
+                  `${r.name}${
+                    Object.keys(r.arguments).length > 0
+                      ? `: ${JSON.stringify(r.arguments)}`
+                      : ""
+                  }`,
+              )
+              .join(" | ")
+          : "No command matched";
 
       transcriptStore.saveTranscript(displayText, "command", {
         inputText,
@@ -1112,7 +1347,9 @@ export class SpeechOSWidget extends LitElement {
       state.completeRecording();
 
       // Show command feedback
-      this.showActionFeedback(results.length > 0 ? "command-success" : "command-none");
+      this.showActionFeedback(
+        results.length > 0 ? "command-success" : "command-none",
+      );
 
       backend.disconnect().catch(() => {});
     } catch (error) {
@@ -1127,7 +1364,9 @@ export class SpeechOSWidget extends LitElement {
     }
   }
 
-  private showActionFeedback(feedback: "command-success" | "command-none" | "edit-empty"): void {
+  private showActionFeedback(
+    feedback: "command-success" | "command-none" | "edit-empty",
+  ): void {
     this.actionFeedback = feedback;
 
     // Clear any existing timeout
@@ -1180,7 +1419,7 @@ export class SpeechOSWidget extends LitElement {
         if (this.showNoAudioWarning) {
           this.showNoAudioWarning = false;
         }
-      }
+      },
     );
   }
 
@@ -1227,11 +1466,16 @@ export class SpeechOSWidget extends LitElement {
 
     // Stop audio capture and disconnect immediately (don't wait for transcription)
     // Kick this off before opening settings so audio stops fast, but don't block UI.
-    const disconnectPromise = getBackend().disconnect().catch((error: unknown) => {
-      if (getConfig().debug) {
-        console.log("[SpeechOS] Disconnect failed while opening settings", error);
-      }
-    });
+    const disconnectPromise = getBackend()
+      .disconnect()
+      .catch((error: unknown) => {
+        if (getConfig().debug) {
+          console.log(
+            "[SpeechOS] Disconnect failed while opening settings",
+            error,
+          );
+        }
+      });
 
     // Update UI state to idle
     state.cancelRecording();
@@ -1249,27 +1493,29 @@ export class SpeechOSWidget extends LitElement {
     if (useExternalSettings()) {
       const host = getConfig().host;
       const fullUrl = `${host}/a/extension-settings`;
-      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+      window.open(fullUrl, "_blank", "noopener,noreferrer");
     } else {
       this.settingsOpen = true;
     }
 
     if (getConfig().debug) {
-      console.log("[SpeechOS] Settings opened from no-audio warning", { useExternalSettings: useExternalSettings() });
+      console.log("[SpeechOS] Settings opened from no-audio warning", {
+        useExternalSettings: useExternalSettings(),
+      });
     }
 
     await disconnectPromise;
   }
 
   private supportsSelection(
-    element: HTMLInputElement | HTMLTextAreaElement
+    element: HTMLInputElement | HTMLTextAreaElement,
   ): boolean {
     if (element.tagName.toLowerCase() === "textarea") {
       return true;
     }
     const supportedTypes = ["text", "search", "url", "tel", "password"];
     return supportedTypes.includes(
-      (element as HTMLInputElement).type || "text"
+      (element as HTMLInputElement).type || "text",
     );
   }
 
@@ -1373,7 +1619,7 @@ export class SpeechOSWidget extends LitElement {
   private verifyEditApplied(
     target: HTMLElement,
     editedText: string,
-    originalContent: string
+    originalContent: string,
   ): void {
     // Use requestAnimationFrame to check after DOM updates
     requestAnimationFrame(() => {
@@ -1381,7 +1627,8 @@ export class SpeechOSWidget extends LitElement {
       let currentContent = "";
 
       if (tagName === "input" || tagName === "textarea") {
-        currentContent = (target as HTMLInputElement | HTMLTextAreaElement).value;
+        currentContent = (target as HTMLInputElement | HTMLTextAreaElement)
+          .value;
       } else if (target.isContentEditable) {
         currentContent = target.textContent || "";
       }
@@ -1401,11 +1648,14 @@ export class SpeechOSWidget extends LitElement {
 
       if (!editApplied) {
         if (getConfig().debug) {
-          console.log("[SpeechOS] Edit failed to apply, showing fallback modal", {
-            expected: editedText,
-            actual: currentContent,
-            original: originalContent,
-          });
+          console.log(
+            "[SpeechOS] Edit failed to apply, showing fallback modal",
+            {
+              expected: editedText,
+              actual: currentContent,
+              original: originalContent,
+            },
+          );
         }
         // Show fallback modal with edit mode styling
         this.dictationModalText = editedText;
@@ -1423,11 +1673,30 @@ export class SpeechOSWidget extends LitElement {
     this.removeAttribute("hidden");
     const showBubbles =
       this.widgetState.isExpanded && this.widgetState.recordingState === "idle";
-    const showSettings = this.widgetState.recordingState === "idle";
+    const showSettings =
+      this.widgetState.recordingState === "idle" && !this.isReading;
+    const readConfig = getReadAloudConfig();
+    const selectionText = (this.widgetState.selectionText || "").trim();
+    const focusedElement = this.widgetState.focusedElement;
+    let focusedTextLength = 0;
+    if (focusedElement && this.isTextBoxElement(focusedElement)) {
+      const tagName = focusedElement.tagName.toLowerCase();
+      if (tagName === "input" || tagName === "textarea") {
+        focusedTextLength = (
+          focusedElement as HTMLInputElement | HTMLTextAreaElement
+        ).value.trim().length;
+      }
+    }
+    const canRead =
+      selectionText.length >= readConfig.minLength ||
+      focusedTextLength >= readConfig.minLength;
+    const showRead = readConfig.enabled && (canRead || this.isReading);
     return html`
       <div class="widget-container" @mousedown="${this.handleDragStart}">
         <speechos-action-bubbles
           ?visible="${showBubbles}"
+          ?readAvailable="${showRead}"
+          ?readActive="${this.isReading}"
           @action-select="${this.handleActionSelect}"
         ></speechos-action-bubbles>
         <div class="mic-row">
@@ -1446,8 +1715,10 @@ export class SpeechOSWidget extends LitElement {
             ?showRetryButton="${this.isErrorRetryable}"
             .actionFeedback="${this.actionFeedback}"
             ?showNoAudioWarning="${this.showNoAudioWarning}"
+            ?reading="${this.isReading}"
             @mic-click="${this.handleMicClick}"
             @stop-recording="${this.handleStopRecording}"
+            @stop-reading="${this.handleStopReading}"
             @cancel-operation="${this.handleCancelOperation}"
             @retry-connection="${this.handleRetryConnection}"
             @close-widget="${this.handleCloseWidget}"

@@ -107,7 +107,7 @@ export interface UserVocabularyData {
 /**
  * Available actions that can be triggered from the widget
  */
-export type SpeechOSAction = "dictate" | "edit" | "command";
+export type SpeechOSAction = "dictate" | "edit" | "command" | "read";
 
 // ============================================
 // Command types for voice command matching
@@ -181,6 +181,12 @@ export interface SpeechOSState {
   /** The form field element that currently has focus (set by client) */
   focusedElement: HTMLElement | null;
 
+  /** Currently selected text (if any) */
+  selectionText: string | null;
+
+  /** Element associated with the current selection (if any) */
+  selectionElement: HTMLElement | null;
+
   /** Current recording state */
   recordingState: RecordingState;
 
@@ -215,8 +221,14 @@ export interface SpeechOSEventMap {
   // ============================================
   // Action events
   // ============================================
-  /** Emitted when user selects an action (dictate/edit) */
+  /** Emitted when user selects an action */
   "action:select": { action: SpeechOSAction };
+
+  // ============================================
+  // Selection events (client only)
+  // ============================================
+  /** Emitted when selected text changes (empty string when cleared) */
+  "selection:change": { text: string; element: HTMLElement | null };
 
   // ============================================
   // State events
@@ -256,7 +268,13 @@ export interface SpeechOSEventMap {
   /** Emitted when user settings change (language, snippets, vocabulary, smartFormat, history) */
   "settings:changed": {
     /** Type of setting that changed */
-    setting: "language" | "snippets" | "vocabulary" | "smartFormat" | "history";
+    setting:
+      | "language"
+      | "snippets"
+      | "vocabulary"
+      | "smartFormat"
+      | "history"
+      | "voice";
   };
 
   // ============================================
@@ -270,6 +288,34 @@ export interface SpeechOSEventMap {
   "settings:syncFailed": { error: string };
   /** Emitted when the settings token expires (user should request a new one) */
   "settings:tokenExpired": void;
+
+  // ============================================
+  // TTS synthesis events (core)
+  // ============================================
+  /** Emitted when a TTS synthesis request begins */
+  "tts:synthesize:start": { text: string };
+  /** Emitted when audio bytes are fully received from the server */
+  "tts:synthesize:complete": { text: string };
+
+  // ============================================
+  // TTS playback events (client only)
+  // ============================================
+  /** Emitted when audio playback begins */
+  "tts:playback:start": { text: string };
+  /** Emitted when audio playback finishes */
+  "tts:playback:complete": { text: string };
+  /** Emitted when audio playback is stopped */
+  "tts:playback:stop": { text: string | null };
+
+  // ============================================
+  // TTS error event
+  // ============================================
+  /** Emitted when an error occurs during TTS synthesis or playback */
+  "tts:error": {
+    code: string;
+    message: string;
+    phase: "synthesize" | "playback";
+  };
 
   // ============================================
   // Error events

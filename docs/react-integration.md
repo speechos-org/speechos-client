@@ -16,7 +16,7 @@ import { SpeechOSProvider, SpeechOSWidget } from '@speechos/react';
 
 function App() {
   return (
-    <SpeechOSProvider config={{ apiKey: 'YOUR_API_KEY' }}>
+    <SpeechOSProvider config={{ apiKey: 'YOUR_API_KEY', readAloud: true }}>
       <MyForm />
       <SpeechOSWidget
         onTranscription={(text, element) => {
@@ -58,6 +58,12 @@ interface SpeechOSWidgetProps {
   onHide?: () => void;
 }
 ```
+
+## Read Aloud
+
+The widget exposes a **Read** action when text is selected, or when a text box
+(input/textarea) is focused with content but no selection. Playback can be stopped
+with the red stop button.
 
 ---
 

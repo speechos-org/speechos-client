@@ -55,10 +55,13 @@ export {
   useDictation,
   useEdit,
   useCommand,
+  useTTS,
   useSpeechOSWidget,
   type UseDictationResult,
   type UseEditResult,
   type UseCommandResult,
+  type UseTTSResult,
+  type SpeakOptions,
   type UseSpeechOSWidgetResult,
 } from "./hooks/index.js";
 
@@ -79,6 +82,8 @@ export type {
   CommandArgument,
   CommandDefinition,
   CommandResult,
+  TTSOptions,
+  TTSResult,
 } from "@speechos/core";
 
 // Legacy alias for backwards compatibility

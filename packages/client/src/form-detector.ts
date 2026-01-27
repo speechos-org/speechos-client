@@ -21,15 +21,7 @@ function isFormField(element: Element | null): element is HTMLElement {
     // Exclude certain input types that don't accept text
     if (tagName === "input") {
       const type = (element as HTMLInputElement).type.toLowerCase();
-      const excludedTypes = [
-        "checkbox",
-        "radio",
-        "submit",
-        "button",
-        "reset",
-        "file",
-        "hidden",
-      ];
+      const excludedTypes = ["checkbox", "radio", "submit", "button", "reset", "file", "hidden"];
       if (excludedTypes.includes(type)) {
         return false;
       }
@@ -38,10 +30,7 @@ function isFormField(element: Element | null): element is HTMLElement {
   }
 
   // Check for contenteditable
-  if (
-    element.isContentEditable ||
-    element.getAttribute("contenteditable") === "true"
-  ) {
+  if (element.isContentEditable || element.getAttribute("contenteditable") === "true") {
     return true;
   }
 
@@ -86,10 +75,10 @@ export class FormDetector implements FormDetectorInterface {
       const target = event.target as Element | null;
 
       if (isFormField(target)) {
-        console.log("[SpeechOS] FormDetector: focus on form field", {
-          element: target,
-          tagName: target?.tagName,
-        });
+        // console.log("[SpeechOS] FormDetector: focus on form field", {
+        //   element: target,
+        //   tagName: target?.tagName,
+        // });
         state.setFocusedElement(target);
         state.show();
         events.emit("form:focus", { element: target });
@@ -112,15 +101,9 @@ export class FormDetector implements FormDetectorInterface {
 
         // If focus is going to another form field or the widget, don't hide
         const goingToFormField = isFormField(relatedTarget);
-        const goingToWidget =
-          widget &&
-          (widget.contains(relatedTarget) ||
-            widget.shadowRoot?.contains(relatedTarget) ||
-            relatedTarget === widget);
+        const goingToWidget = widget && (widget.contains(relatedTarget) || widget.shadowRoot?.contains(relatedTarget) || relatedTarget === widget);
         // If focus is going to an element with data-speechos-no-close, don't hide
-        const goingToNoCloseElement = Boolean(
-          relatedTarget?.closest("[data-speechos-no-close]")
-        );
+        const goingToNoCloseElement = Boolean(relatedTarget?.closest("[data-speechos-no-close]"));
 
         // console.log("[SpeechOS] blurHandler:", {
         //   relatedTarget,
@@ -143,22 +126,14 @@ export class FormDetector implements FormDetectorInterface {
 
           // Double-check: verify focus is still not on a form field or widget
           const activeElement = document.activeElement;
-          const isWidgetFocused =
-            widget &&
-            (widget.contains(activeElement) ||
-              widget.shadowRoot?.contains(activeElement));
+          const isWidgetFocused = widget && (widget.contains(activeElement) || widget.shadowRoot?.contains(activeElement));
           // Check if focus is on an element with data-speechos-no-close
-          const isNoCloseElementFocused = Boolean(
-            activeElement?.closest("[data-speechos-no-close]")
-          );
+          const isNoCloseElementFocused = Boolean(activeElement?.closest("[data-speechos-no-close]"));
+          const hasSelection = Boolean(state.getState().selectionText);
 
           // Only hide if no form field is focused AND widget isn't focused AND not a no-close element
           // AND alwaysVisible is not enabled
-          if (
-            !isFormField(activeElement) &&
-            !isWidgetFocused &&
-            !isNoCloseElementFocused
-          ) {
+          if (!isFormField(activeElement) && !isWidgetFocused && !isNoCloseElementFocused && !hasSelection) {
             state.setFocusedElement(null);
             // Don't hide if alwaysVisible is enabled
             if (!isAlwaysVisible()) {
@@ -171,19 +146,11 @@ export class FormDetector implements FormDetectorInterface {
     };
 
     // Helper to check if event is on the widget
-    const isWidgetInteraction = (
-      target: Node | null,
-      composedPath: EventTarget[]
-    ): boolean => {
+    const isWidgetInteraction = (target: Node | null, composedPath: EventTarget[]): boolean => {
       const widget = document.querySelector("speechos-widget");
       if (!widget) return false;
 
-      return (
-        composedPath.includes(widget) ||
-        widget.contains(target) ||
-        widget.shadowRoot?.contains(target) ||
-        false
-      );
+      return composedPath.includes(widget) || widget.contains(target) || widget.shadowRoot?.contains(target) || false;
     };
 
     // Track touch interactions with the widget (mobile support)
@@ -225,10 +192,10 @@ export class FormDetector implements FormDetectorInterface {
     // Check for already-focused form field (e.g., page loaded with autofocus)
     const activeElement = document.activeElement;
     if (isFormField(activeElement)) {
-      console.log("[SpeechOS] FormDetector: found initially focused form field", {
-        element: activeElement,
-        tagName: activeElement?.tagName,
-      });
+      // console.log("[SpeechOS] FormDetector: found initially focused form field", {
+      //   element: activeElement,
+      //   tagName: activeElement?.tagName,
+      // });
       state.setFocusedElement(activeElement);
       state.show();
       events.emit("form:focus", { element: activeElement });

@@ -15,7 +15,12 @@ export {
   setConfig,
   resetConfig,
   DEFAULT_HOST,
+  DEFAULT_TTS_VOICE_ID,
 } from "@speechos/core";
+
+// TTS with browser playback support
+export { tts, TTSPlayer } from "./tts-player.js";
+export type { SpeakOptions, TTSOptions, TTSResult, TTSErrorCode, CombinedTTS } from "./tts-player.js";
 
 // Re-export core types
 export type {
@@ -56,6 +61,18 @@ export {
   resetAudioSettings,
 } from "./stores/audio-settings.js";
 export type { AudioSettings } from "./stores/audio-settings.js";
+
+export {
+  getVoiceSettings,
+  setVoiceSettings,
+  getVoiceId,
+  setVoiceId,
+  getVoiceById,
+  getVoiceName,
+  resetVoiceSettings,
+  SUPPORTED_VOICES,
+} from "./stores/voice-settings.js";
+export type { VoiceSettings, VoiceOption } from "./stores/voice-settings.js";
 
 export {
   languageSettings,
@@ -118,12 +135,22 @@ export {
   getCommands,
   getZIndex,
   useExternalSettings,
+  getReadAloudConfig,
+  isReadAloudEnabled,
 } from "./config.js";
-export type { SpeechOSClientConfig, ResolvedClientConfig } from "./config.js";
+export type {
+  SpeechOSClientConfig,
+  ResolvedClientConfig,
+  ReadAloudConfig,
+  ResolvedReadAloudConfig,
+} from "./config.js";
 
 // Client-specific exports
 export { formDetector, FormDetector } from "./form-detector.js";
 export type { FormDetectorInterface } from "./form-detector.js";
+
+export { selectionDetector, SelectionDetector } from "./selection-detector.js";
+export type { SelectionDetectorInterface } from "./selection-detector.js";
 
 export {
   defaultTextInputHandler,

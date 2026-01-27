@@ -15,6 +15,8 @@ const mockState = {
   isMicEnabled: false,
   activeAction: null,
   focusedElement: null,
+  selectionText: null,
+  selectionElement: null,
   recordingState: "idle" as const,
   errorMessage: null,
 };

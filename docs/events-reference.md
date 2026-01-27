@@ -16,9 +16,16 @@ Complete reference of all events emitted by SpeechOS.
 | `widget:hide` | `void` | Widget was hidden |
 | `form:focus` | `{ element }` | Text field received focus |
 | `form:blur` | `{ element }` | Text field lost focus |
-| `action:select` | `{ action }` | User selected an action (dictate/edit/command) |
+| `selection:change` | `{ text, element }` | Selected text changed (empty string when cleared) |
+| `action:select` | `{ action }` | User selected an action (dictate/edit/command/read) |
 | `state:change` | `{ state }` | Internal state changed |
 | `settings:changed` | `{ setting }` | User changed a setting |
+| `tts:synthesize:start` | `{ text }` | TTS synthesis request started |
+| `tts:synthesize:complete` | `{ text }` | TTS audio bytes received |
+| `tts:playback:start` | `{ text }` | TTS audio playback started |
+| `tts:playback:complete` | `{ text }` | TTS audio playback finished |
+| `tts:playback:stop` | `{ text }` | TTS audio playback stopped |
+| `tts:error` | `{ code, message, phase }` | TTS error occurred |
 
 ## Event Details
 
@@ -201,9 +208,25 @@ SpeechOS.events.on('form:blur', ({ element }) => {
 
 - `element: HTMLElement` — The blurred element
 
+### selection:change
+
+Fired when the user changes their text selection.
+
+```typescript
+SpeechOS.events.on('selection:change', ({ text, element }) => {
+  console.log('Selected text:', text);
+  console.log('Selection element:', element);
+});
+```
+
+**Payload:**
+
+- `text: string` — The selected text (empty string when cleared)
+- `element: HTMLElement | null` — The element associated with the selection
+
 ### action:select
 
-Fired when user selects an action (dictate, edit, or command).
+Fired when user selects an action (dictate, edit, command, or read).
 
 ```typescript
 SpeechOS.events.on('action:select', ({ action }) => {
@@ -213,7 +236,7 @@ SpeechOS.events.on('action:select', ({ action }) => {
 
 **Payload:**
 
-- `action: 'dictate' | 'edit' | 'command'` — The selected action
+- `action: 'dictate' | 'edit' | 'command' | 'read'` — The selected action
 
 ### state:change
 
@@ -241,7 +264,117 @@ SpeechOS.events.on('settings:changed', ({ setting }) => {
 
 **Payload:**
 
-- `setting: string` — Name of the setting that changed
+- `setting: string` — Name of the setting that changed (`language`, `smartFormat`, `snippets`, `vocabulary`, `history`, `voice`)
+
+## TTS Events
+
+### tts:synthesize:start
+
+Fired when a TTS synthesis request begins.
+
+```typescript
+events.on('tts:synthesize:start', ({ text }) => {
+  console.log('Synthesizing:', text);
+  showLoadingSpinner();
+});
+```
+
+**Payload:**
+
+- `text: string` — The text being synthesized
+
+### tts:synthesize:complete
+
+Fired when TTS audio bytes are fully received from the server.
+
+```typescript
+events.on('tts:synthesize:complete', ({ text }) => {
+  console.log('Synthesis complete for:', text);
+  hideLoadingSpinner();
+});
+```
+
+**Payload:**
+
+- `text: string` — The text that was synthesized
+
+### tts:playback:start
+
+Fired when TTS audio playback begins (client package only).
+
+```typescript
+events.on('tts:playback:start', ({ text }) => {
+  console.log('Playing:', text);
+  showSpeakingIndicator();
+});
+```
+
+**Payload:**
+
+- `text: string` — The text being spoken
+
+### tts:playback:complete
+
+Fired when TTS audio playback finishes (client package only).
+
+```typescript
+events.on('tts:playback:complete', ({ text }) => {
+  console.log('Playback complete:', text);
+  hideSpeakingIndicator();
+});
+```
+
+**Payload:**
+
+- `text: string` — The text that was spoken
+
+### tts:playback:stop
+
+Fired when TTS playback is manually stopped (client package only).
+
+```typescript
+events.on('tts:playback:stop', ({ text }) => {
+  console.log('Playback stopped:', text);
+  hideSpeakingIndicator();
+});
+```
+
+**Payload:**
+
+- `text: string | null` — The text that was playing when stopped (if known)
+
+### tts:error
+
+Fired when an error occurs during TTS synthesis or playback.
+
+```typescript
+events.on('tts:error', ({ code, message, phase }) => {
+  console.error(`TTS ${phase} error [${code}]: ${message}`);
+  
+  if (phase === 'synthesize') {
+    // Handle network/API errors
+  } else {
+    // Handle playback errors
+  }
+});
+```
+
+**Payload:**
+
+- `code: string` — Error code identifying the error type
+- `message: string` — Human-readable error message
+- `phase: 'synthesize' | 'playback'` — Which phase the error occurred in
+
+**Common error codes:**
+
+| Code | Phase | Description |
+|------|-------|-------------|
+| `invalid_request` | synthesize | Invalid text or options |
+| `usage_limit_exceeded` | synthesize | TTS character limit reached |
+| `authentication_failed` | synthesize | Invalid or missing API key |
+| `network_error` | synthesize | Network request failed |
+| `decode_failed` | playback | Failed to decode audio data |
+| `playback_failed` | playback | Audio playback error |
 
 ## Subscribing to Events
 
@@ -277,5 +410,6 @@ function MyComponent() {
 ## Related
 
 - [Widget Guide](./widget-guide.md) — Using events with the widget
+- [TTS Guide](./tts-guide.md) — Text-to-speech events and usage
 - [React Integration](./react-integration.md) — React event hooks
 - [API Reference](./api-reference.md) — Full API documentation

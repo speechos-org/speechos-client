@@ -17,6 +17,7 @@ export { useSpeechOSEvents } from "./useSpeechOSEvents.js";
 export { useDictation, type UseDictationResult } from "./useDictation.js";
 export { useEdit, type UseEditResult } from "./useEdit.js";
 export { useCommand, type UseCommandResult } from "./useCommand.js";
+export { useTTS, type UseTTSResult, type SpeakOptions } from "./useTTS.js";
 
 // Widget control hook
 export { useSpeechOSWidget, type UseSpeechOSWidgetResult } from "./useSpeechOSWidget.js";

@@ -24,13 +24,19 @@ interface SpeechOSState {
   
   /** Currently focused/attached element (or null) */
   focusedElement: HTMLElement | null;
+
+  /** Currently selected text (or null) */
+  selectionText: string | null;
+
+  /** Element associated with current selection (or null) */
+  selectionElement: HTMLElement | null;
   
   /** Error message (or null if no error) */
   errorMessage: string | null;
 }
 
-type RecordingState = 'idle' | 'connecting' | 'recording' | 'processing';
-type SpeechOSAction = 'dictate' | 'edit' | 'command';
+type RecordingState = 'idle' | 'connecting' | 'recording' | 'processing' | 'error';
+type SpeechOSAction = 'dictate' | 'edit' | 'command' | 'read';
 ```
 
 ### Configuration Types
@@ -63,12 +69,22 @@ interface SpeechOSClientConfig extends SpeechOSCoreConfig {
   
   /** Form detection behavior (default: true) */
   formDetection?: boolean | FormDetectorInterface;
+
+  /** Read-aloud configuration */
+  readAloud?: boolean | ReadAloudConfig;
   
   /** Voice command definitions */
   commands?: CommandDefinition[];
   
   /** Custom text input handler */
   textInputHandler?: TextInputHandlerInterface;
+}
+
+interface ReadAloudConfig {
+  enabled?: boolean;
+  minLength?: number;
+  maxLength?: number | null;
+  showOnSelection?: boolean;
 }
 ```
 

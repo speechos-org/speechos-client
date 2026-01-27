@@ -6,7 +6,7 @@ The SpeechOS widget is the primary way users interact with voice input. It autom
 
 1. **User focuses a text field** — The widget appears at the bottom of the screen
 2. **User clicks the microphone** — Action bubbles expand showing available actions
-3. **User selects an action** — Dictate, Edit, or Command (if configured)
+3. **User selects an action** — Dictate, Edit, Command (if configured), or Read (when text is selected)
 4. **User speaks** — Audio is captured and processed in real-time
 5. **User clicks stop** — Transcribed/edited text is inserted into the field
 
@@ -25,6 +25,9 @@ SpeechOS.init({
   // Form detection behavior (default: true)
   formDetection: true,          // true | false | custom FormDetectorInterface
 
+  // Read-aloud behavior (default: true)
+  readAloud: true,              // true | false | { enabled, minLength, maxLength, showOnSelection }
+
   // Voice Commands (shows Command button if provided)
   commands: [
     { name: 'submit_form', description: 'Submit the current form' },
@@ -34,6 +37,16 @@ SpeechOS.init({
   // Advanced: Custom text input handler (see Advanced Topics)
   textInputHandler: customHandler,
 });
+
+## Read Aloud
+
+The widget supports reading selected text out loud:
+
+- **Select text** anywhere on the page to enable the **Read** action
+- **Focus a text box** (input/textarea) with no selection to read the full field
+- Click **Read** to start playback, and use the red stop button to stop
+
+Voice selection is available in Settings and is stored locally.
 ```
 
 ## Form Detection

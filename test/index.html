@@ -497,6 +497,73 @@
       border-radius: 4px;
       color: #a5b4fc;
     }
+
+    /* TTS Demo Styles */
+    .tts-demo {
+      background: #f8f9fa;
+      padding: 24px;
+      border-radius: 12px;
+      margin-top: 16px;
+    }
+
+    .tts-options {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .tts-options .form-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .tts-status {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 13px;
+    }
+
+    .tts-status .status-label {
+      color: #858585;
+      margin-right: 8px;
+    }
+
+    .tts-status .status-text.speaking {
+      color: #10b981;
+    }
+
+    .tts-status .status-text.loading {
+      color: #f59e0b;
+    }
+
+    .tts-status .status-text.error {
+      color: #ef4444;
+    }
+
+    .tts-audio-info {
+      background: #e7f3ff;
+      border: 1px solid #2196f3;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .tts-audio-info strong {
+      color: #0d47a1;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .tts-audio-info p {
+      margin: 4px 0;
+      color: #1565c0;
+      font-size: 14px;
+    }
   </style>
 
 </head>
@@ -768,6 +835,85 @@
             <li><code>all_on</code> - "Turn on all lights"</li>
             <li><code>all_off</code> - "Turn off all lights"</li>
           </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔊 Text-to-Speech Demo</h2>
+      <div class="instruction-box">
+        <strong>🎧 Test TTS:</strong>
+        <p>
+          1. Initialize the SDK with your API key above<br>
+          2. Enter text in the input below<br>
+          3. Click "Speak" to play audio or "Get Audio" to download bytes
+        </p>
+      </div>
+
+      <div class="tts-demo">
+        <!-- Text Input -->
+        <div class="form-group">
+          <label for="tts-text">Text to Speak</label>
+          <textarea id="tts-text" placeholder="Enter text to convert to speech...">Hello! Welcome to SpeechOS text-to-speech.</textarea>
+        </div>
+
+        <!-- Options -->
+        <div class="tts-options">
+          <div class="form-group">
+            <label for="tts-voice">Voice</label>
+            <select id="tts-voice">
+              <option value="">Default (George)</option>
+              <option value="JBFqnCBsd6RMkjVDRZzb">George</option>
+              <option value="21m00Tcm4TlvDq8ikWAM">Rachel</option>
+              <option value="AZnzlk1XvdvUeBnXmlld">Domi</option>
+              <option value="EXAVITQu4vr4xnSDxMaL">Bella</option>
+              <option value="ErXwobaYiN019PkySvjV">Antoni</option>
+              <option value="MF3mGyEYCl7XYWbV9V6O">Elli</option>
+              <option value="TxGEqnHWrfWFTfGW9XjX">Josh</option>
+              <option value="VR6AewLTigWG4xSOukaG">Arnold</option>
+              <option value="pNInz6obpgDQGcFmaJgB">Adam</option>
+              <option value="yoZ06aMxZJJ28mfd3POQ">Sam</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tts-language">Language</label>
+            <select id="tts-language">
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="ja">Japanese</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="test-buttons">
+          <button onclick="speakText()" style="background: #10b981;">
+            🔊 Speak
+          </button>
+          <button onclick="stopSpeaking()" style="background: #ef4444;">
+            ⏹️ Stop
+          </button>
+          <button onclick="getAudioBytes()" style="background: #6366f1;">
+            📥 Get Audio Bytes
+          </button>
+        </div>
+
+        <!-- Status Display -->
+        <div class="tts-status" id="tts-status">
+          <span class="status-label">Status:</span>
+          <span class="status-text" id="tts-status-text">Ready</span>
+        </div>
+
+        <!-- Audio Info (shown when bytes are fetched) -->
+        <div class="tts-audio-info" id="tts-audio-info" style="display: none;">
+          <strong>Audio Info:</strong>
+          <p>Size: <span id="tts-audio-size">0</span> bytes</p>
+          <p>Format: <span id="tts-audio-format">audio/mpeg</span></p>
+          <button onclick="playFetchedAudio()" style="background: #8b5cf6;">
+            ▶️ Play Fetched Audio
+          </button>
         </div>
       </div>
     </div>
@@ -1120,6 +1266,27 @@
         window.SpeechOS.events.on('settings:tokenExpired', () => {
           logToConsole('🔄 Event: settings:tokenExpired - Token expired, sync disabled', 'error');
           updateSettingsSyncStatus('Settings token expired - re-initialize with new token', 'error');
+        });
+
+        // TTS events
+        window.SpeechOS.events.on('tts:synthesize:start', ({ text }) => {
+          logToConsole(`🔊 TTS synthesis started: "${text.substring(0, 30)}..."`, 'info');
+        });
+
+        window.SpeechOS.events.on('tts:synthesize:complete', ({ text }) => {
+          logToConsole('✓ TTS synthesis complete', 'success');
+        });
+
+        window.SpeechOS.events.on('tts:playback:start', ({ text }) => {
+          logToConsole('🔈 TTS playback started', 'info');
+        });
+
+        window.SpeechOS.events.on('tts:playback:complete', ({ text }) => {
+          logToConsole('✓ TTS playback complete', 'success');
+        });
+
+        window.SpeechOS.events.on('tts:error', ({ code, message, phase }) => {
+          logToConsole(`✗ TTS ${phase} error [${code}]: ${message}`, 'error');
         });
 
         // Initial settings sync status check
@@ -1753,6 +1920,123 @@
         logToConsole(`✗ Error starting command: ${error.message}`, 'error');
         updateCommandResult(`Error: ${error.message}`, 'error');
       }
+    }
+
+    // ============================================
+    // TTS Demo Functions
+    // ============================================
+
+    let fetchedAudioBuffer = null;
+
+    async function speakText() {
+      if (typeof window.SpeechOS === 'undefined' || !window.SpeechOS.tts) {
+        logToConsole('✗ TTS not available', 'error');
+        return;
+      }
+
+      const text = document.getElementById('tts-text').value.trim();
+      const voiceId = document.getElementById('tts-voice').value.trim();
+      const language = document.getElementById('tts-language').value;
+
+      if (!text) {
+        logToConsole('✗ Please enter text to speak', 'error');
+        return;
+      }
+
+      try {
+        updateTTSStatus('Speaking...', 'speaking');
+        logToConsole(`🔊 Speaking: "${text.substring(0, 50)}..."`, 'info');
+
+        const options = { language };
+        if (voiceId) options.voiceId = voiceId;
+
+        await window.SpeechOS.tts.speak(text, options);
+
+        updateTTSStatus('Ready', 'ready');
+        logToConsole('✓ TTS playback complete', 'success');
+      } catch (error) {
+        updateTTSStatus('Error', 'error');
+        logToConsole(`✗ TTS error: ${error.message}`, 'error');
+      }
+    }
+
+    function stopSpeaking() {
+      if (window.SpeechOS?.tts?.stop) {
+        window.SpeechOS.tts.stop();
+        updateTTSStatus('Stopped', 'ready');
+        logToConsole('⏹️ TTS stopped', 'info');
+      }
+    }
+
+    async function getAudioBytes() {
+      if (typeof window.SpeechOS === 'undefined' || !window.SpeechOS.tts) {
+        logToConsole('✗ TTS not available', 'error');
+        return;
+      }
+
+      const text = document.getElementById('tts-text').value.trim();
+      const voiceId = document.getElementById('tts-voice').value.trim();
+      const language = document.getElementById('tts-language').value;
+
+      if (!text) {
+        logToConsole('✗ Please enter text', 'error');
+        return;
+      }
+
+      try {
+        updateTTSStatus('Fetching audio...', 'loading');
+        logToConsole(`📥 Fetching audio for: "${text.substring(0, 50)}..."`, 'info');
+
+        const options = { language };
+        if (voiceId) options.voiceId = voiceId;
+
+        const result = await window.SpeechOS.tts.synthesize(text, options);
+
+        fetchedAudioBuffer = result.audio;
+
+        // Show audio info
+        document.getElementById('tts-audio-info').style.display = 'block';
+        document.getElementById('tts-audio-size').textContent = result.audio.byteLength.toLocaleString();
+        document.getElementById('tts-audio-format').textContent = result.contentType;
+
+        updateTTSStatus('Audio fetched', 'ready');
+        logToConsole(`✓ Audio fetched: ${result.audio.byteLength} bytes`, 'success');
+      } catch (error) {
+        updateTTSStatus('Error', 'error');
+        logToConsole(`✗ Fetch error: ${error.message}`, 'error');
+      }
+    }
+
+    async function playFetchedAudio() {
+      if (!fetchedAudioBuffer) {
+        logToConsole('✗ No audio to play', 'error');
+        return;
+      }
+
+      try {
+        const audioContext = new AudioContext();
+        const audioBuffer = await audioContext.decodeAudioData(fetchedAudioBuffer.slice(0));
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.start();
+
+        updateTTSStatus('Playing fetched audio...', 'speaking');
+        logToConsole('▶️ Playing fetched audio', 'info');
+
+        source.onended = () => {
+          updateTTSStatus('Ready', 'ready');
+          logToConsole('✓ Playback complete', 'success');
+        };
+      } catch (error) {
+        logToConsole(`✗ Playback error: ${error.message}`, 'error');
+      }
+    }
+
+    function updateTTSStatus(text, state) {
+      const statusText = document.getElementById('tts-status-text');
+      statusText.textContent = text;
+      statusText.className = 'status-text ' + state;
     }
 
     // Click handlers for lights (manual toggle)

@@ -5,6 +5,16 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { state, events } from "@speechos/core";
+import { resetClientConfig, setClientConfig } from "../config.js";
+
+vi.mock("../tts-player.js", () => ({
+  tts: {
+    speak: vi.fn(),
+    stop: vi.fn(),
+  },
+}));
+
+import { tts } from "../tts-player.js";
 import type { SpeechOSWidget } from "./widget.js";
 
 // Helper to mock mobile device
@@ -262,6 +272,161 @@ describe("Widget positioning", () => {
       // hide() should reset the focused element
       expect(state.getState().isVisible).toBe(false);
     });
+  });
+
+  describe("focus retention", () => {
+    beforeEach(() => {
+      mockDesktopDevice();
+    });
+
+    it("should prevent default focus shift on widget mouse interactions", async () => {
+      await import("./widget.js");
+
+      widget.remove();
+      widget = document.createElement("speechos-widget") as HTMLElement;
+      document.body.appendChild(widget);
+
+      state.show();
+
+      await (widget as SpeechOSWidget).updateComplete;
+
+      const micButton = (widget as SpeechOSWidget).shadowRoot?.querySelector(
+        "speechos-mic-button"
+      );
+
+      expect(micButton).toBeTruthy();
+
+      const event = new MouseEvent("mousedown", {
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+      });
+
+      micButton?.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+    });
+  });
+});
+
+describe("Widget read-aloud action", () => {
+  let widget: HTMLElement;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    state.reset();
+    events.clear();
+    resetClientConfig();
+    setClientConfig({ apiKey: "test-key", readAloud: true });
+
+    await import("./widget.js");
+
+    widget = document.createElement("speechos-widget") as HTMLElement;
+    document.body.appendChild(widget);
+
+    state.show();
+    state.setState({ isExpanded: true });
+    state.setSelection("Hello world", null);
+
+    await (widget as any).updateComplete;
+  });
+
+  afterEach(() => {
+    if (widget && widget.parentNode) {
+      widget.parentNode.removeChild(widget);
+    }
+    document.body.innerHTML = "";
+    resetClientConfig();
+  });
+
+  it("should render read button and call tts.speak", async () => {
+    const bubbles = (widget as any).shadowRoot?.querySelector(
+      "speechos-action-bubbles"
+    );
+    await bubbles?.updateComplete;
+
+    const readButton = bubbles?.shadowRoot?.querySelector(
+      "button.action-button.read"
+    ) as HTMLButtonElement | null;
+
+    expect(readButton).toBeTruthy();
+
+    readButton?.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, composed: true })
+    );
+
+    expect(vi.mocked(tts.speak)).toHaveBeenCalledWith("Hello world");
+  });
+
+  it("should read full input value when no selection", async () => {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = "Full input text";
+    document.body.appendChild(input);
+
+    state.setFocusedElement(input);
+    state.clearSelection();
+    state.setState({ isExpanded: true });
+
+    await (widget as any).updateComplete;
+
+    const bubbles = (widget as any).shadowRoot?.querySelector(
+      "speechos-action-bubbles"
+    );
+    await bubbles?.updateComplete;
+
+    const readButton = bubbles?.shadowRoot?.querySelector(
+      "button.action-button.read"
+    ) as HTMLButtonElement | null;
+
+    expect(readButton).toBeTruthy();
+
+    readButton?.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, composed: true })
+    );
+
+    expect(vi.mocked(tts.speak)).toHaveBeenCalledWith("Full input text");
+  });
+
+  it("should show stop state and call tts.stop", async () => {
+    events.emit("tts:playback:start", { text: "Hello world" });
+    await (widget as any).updateComplete;
+
+    const bubbles = (widget as any).shadowRoot?.querySelector(
+      "speechos-action-bubbles"
+    );
+    await bubbles?.updateComplete;
+
+    const readButton = bubbles?.shadowRoot?.querySelector(
+      "button.action-button.read"
+    ) as HTMLButtonElement | null;
+
+    expect(readButton?.textContent).toContain("Stop");
+
+    const micButton = (widget as any).shadowRoot?.querySelector(
+      "speechos-mic-button"
+    ) as HTMLElement | null;
+
+    const micInnerButton = micButton?.shadowRoot?.querySelector(
+      "button.mic-button"
+    ) as HTMLButtonElement | null;
+
+    micInnerButton?.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, composed: true })
+    );
+
+    expect(vi.mocked(tts.stop)).toHaveBeenCalled();
+  });
+
+  it("should render mic stop state while reading", async () => {
+    events.emit("tts:playback:start", { text: "Hello world" });
+    await (widget as any).updateComplete;
+
+    const micButton = (widget as any).shadowRoot?.querySelector(
+      "speechos-mic-button"
+    ) as HTMLElement | null;
+
+    expect((micButton as any)?.reading).toBe(true);
   });
 });
 
