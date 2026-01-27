@@ -107,16 +107,30 @@ Argument definition for a command.
 
 ```typescript
 interface CommandArgument {
-  /** Argument name */
+  /** Argument name (used as key in CommandResult.arguments) */
   name: string;
   
-  /** Argument description for AI */
+  /** Description helps AI understand what value to extract */
   description: string;
   
-  /** Expected type (default: 'string') */
+  /**
+   * Expected type - controls how the value is extracted and formatted.
+   *
+   * - 'string': Text value (default). Returned as string.
+   * - 'number': Decimal number. Returned as number (e.g., 3.14).
+   * - 'integer': Whole number. Returned as number (e.g., 42).
+   * - 'boolean': True/false. Returned as boolean.
+   *
+   * @default 'string'
+   */
   type?: 'string' | 'number' | 'integer' | 'boolean';
   
-  /** Is this argument required? (default: true) */
+  /**
+   * Whether this argument must be present for the command to match.
+   * If required and not found in speech, the command won't match.
+   *
+   * @default true
+   */
   required?: boolean;
 }
 ```
@@ -130,7 +144,21 @@ interface CommandResult {
   /** Name of the matched command */
   name: string;
   
-  /** Extracted argument values */
+  /**
+   * Extracted argument values.
+   *
+   * Values are typed based on the CommandArgument.type:
+   * - 'string' arguments → string
+   * - 'number' arguments → number
+   * - 'integer' arguments → number
+   * - 'boolean' arguments → boolean
+   *
+   * Use type assertions when accessing:
+   * ```typescript
+   * const level = result.arguments.level as number;
+   * const enabled = result.arguments.enabled as boolean;
+   * ```
+   */
   arguments: Record<string, unknown>;
 }
 ```
@@ -147,7 +175,7 @@ interface SpeechOSEventMap {
   'transcription:complete': { text: string };
   'edit:applied': { originalContent: string; editedContent: string; element: HTMLElement };
   'edit:complete': { text: string; originalText: string };
-  'command:complete': { command: CommandResult | null };
+  'command:complete': { commands: CommandResult[] };  // Array of matched commands
   'error': { code: string; message: string; source: string };
   'widget:show': void;
   'widget:hide': void;
@@ -326,8 +354,8 @@ interface UseCommandResult {
   /** Start listening for commands */
   start: (commands: CommandDefinition[]) => Promise<void>;
   
-  /** Stop and get matched command */
-  stop: () => Promise<CommandResult | null>;
+  /** Stop and get matched commands */
+  stop: () => Promise<CommandResult[]>;
   
   /** Is currently listening? */
   isListening: boolean;
@@ -335,8 +363,8 @@ interface UseCommandResult {
   /** Is processing? */
   isProcessing: boolean;
   
-  /** Matched command result */
-  result: CommandResult | null;
+  /** Matched command results (empty array if no matches) */
+  results: CommandResult[];
   
   /** Error message */
   error: string | null;
@@ -402,10 +430,10 @@ interface UseSpeechOSResult {
   stopEdit: () => Promise<string>;
   
   /** Start command listening */
-  command: (commands: CommandDefinition[]) => Promise<CommandResult>;
+  command: (commands: CommandDefinition[]) => Promise<CommandResult[]>;
   
-  /** Stop command listening */
-  stopCommand: () => Promise<CommandResult>;
+  /** Stop command listening (returns array of matched commands) */
+  stopCommand: () => Promise<CommandResult[]>;
   
   /** Cancel current operation */
   cancel: () => Promise<void>;

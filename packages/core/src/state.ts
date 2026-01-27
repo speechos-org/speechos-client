@@ -157,7 +157,7 @@ class StateManager {
 
   /**
    * Set the connection state
-   * @param isConnected - Whether connected to LiveKit
+   * @param isConnected - Whether connected to the backend
    */
   setConnected(isConnected: boolean): void {
     this.setState({ isConnected });

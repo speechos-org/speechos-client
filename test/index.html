@@ -1097,7 +1097,7 @@
         window.SpeechOS.events.on('command:complete', (payload) => {
           console.log('[Lights] command:complete event received:', payload);
           logToConsole(`⚡ Event: command:complete`, 'info');
-          handleCommandResult(payload.command);
+          handleCommandResults(payload.commands);
         });
 
         // Settings sync events
@@ -1647,46 +1647,33 @@
       resultText.className = 'command-result-text ' + className;
     }
 
-    function handleCommandResult(command) {
-      console.log('[Lights] handleCommandResult called with:', command);
-
-      if (!command) {
-        updateCommandResult('No command matched', 'no-match');
-        logToConsole('⚡ Command: No match found', 'info');
-        return;
-      }
-
+    /**
+     * Execute a single command and return the result text
+     */
+    function executeCommand(command) {
       const { name, arguments: args } = command;
-      console.log('[Lights] Parsed command:', { name, args });
+      console.log('[Lights] Executing command:', { name, args });
       logToConsole(`⚡ Command matched: ${name}`, 'success');
       logToConsole(`   Arguments: ${JSON.stringify(args)}`, 'info');
-
-      let resultText = '';
 
       switch (name) {
         case 'turn_on': {
           const color = normalizeColor(args?.color);
           if (color) {
             setLightState(color, true);
-            resultText = `turn_on(${color}) ✓`;
+            return `turn_on(${color}) ✓`;
           } else {
-            resultText = `turn_on - invalid color: ${args?.color}`;
-            updateCommandResult(resultText, 'error');
-            return;
+            return `turn_on - invalid color: ${args?.color}`;
           }
-          break;
         }
         case 'turn_off': {
           const color = normalizeColor(args?.color);
           if (color) {
             setLightState(color, false);
-            resultText = `turn_off(${color}) ✓`;
+            return `turn_off(${color}) ✓`;
           } else {
-            resultText = `turn_off - invalid color: ${args?.color}`;
-            updateCommandResult(resultText, 'error');
-            return;
+            return `turn_off - invalid color: ${args?.color}`;
           }
-          break;
         }
         case 'toggle': {
           console.log('[Lights] toggle case - args?.color:', args?.color);
@@ -1695,29 +1682,44 @@
           if (color) {
             console.log('[Lights] Calling toggleLight with:', color);
             toggleLight(color);
-            resultText = `toggle(${color}) ✓`;
+            return `toggle(${color}) ✓`;
           } else {
-            resultText = `toggle - invalid color: ${args?.color}`;
-            updateCommandResult(resultText, 'error');
-            return;
+            return `toggle - invalid color: ${args?.color}`;
           }
-          break;
         }
         case 'all_on':
           toggleAllLights(true);
-          resultText = 'all_on() ✓';
-          break;
+          return 'all_on() ✓';
         case 'all_off':
           toggleAllLights(false);
-          resultText = 'all_off() ✓';
-          break;
+          return 'all_off() ✓';
         default:
-          resultText = `Unknown command: ${name}`;
-          updateCommandResult(resultText, 'error');
-          return;
+          return `Unknown command: ${name}`;
+      }
+    }
+
+    /**
+     * Handle multiple commands from a single voice input
+     */
+    function handleCommandResults(commands) {
+      console.log('[Lights] handleCommandResults called with:', commands);
+
+      if (!commands || commands.length === 0) {
+        updateCommandResult('No command matched', 'no-match');
+        logToConsole('⚡ Command: No match found', 'info');
+        return;
       }
 
-      updateCommandResult(resultText);
+      // Execute each command and collect results
+      const resultTexts = [];
+      for (const command of commands) {
+        const text = executeCommand(command);
+        resultTexts.push(text);
+      }
+
+      // Display all results (separated by pipe for multiple commands)
+      const displayText = resultTexts.join(' | ');
+      updateCommandResult(displayText);
     }
 
     async function startCommandMode() {

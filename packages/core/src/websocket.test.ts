@@ -345,12 +345,25 @@ describe('WebSocket protocol messages', () => {
 
     const commandResponse = {
       type: 'command_result',
-      command: { name: 'search', arguments: { query: 'test' } },
+      commands: [
+        { name: 'search', arguments: { query: 'test' } },
+      ],
+    };
+
+    const multiCommandResponse = {
+      type: 'command_result',
+      commands: [
+        { name: 'turn_on', arguments: { color: 'red' } },
+        { name: 'turn_off', arguments: { color: 'blue' } },
+      ],
     };
 
     expect(commandRequest.type).toBe('execute_command');
     expect(Array.isArray(commandRequest.commands)).toBe(true);
     expect(commandResponse.type).toBe('command_result');
+    expect(Array.isArray(commandResponse.commands)).toBe(true);
+    expect(commandResponse.commands.length).toBe(1);
+    expect(multiCommandResponse.commands.length).toBe(2);
   });
 });
 

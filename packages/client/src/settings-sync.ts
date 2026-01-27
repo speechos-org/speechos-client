@@ -41,7 +41,7 @@ interface SyncedHistoryEntry {
   action: "dictate" | "edit" | "command";
   originalText?: string;
   inputText?: string;
-  commandResult?: { name: string; arguments: Record<string, unknown> } | null;
+  commandResults?: { name: string; arguments: Record<string, unknown> }[];
 }
 
 /**
@@ -297,7 +297,7 @@ class SettingsSync {
           action: t.action,
           ...(t.originalText && { originalText: t.originalText }),
           ...(t.inputText && { inputText: t.inputText }),
-          ...(t.commandResult !== undefined && { commandResult: t.commandResult }),
+          ...(t.commandResults !== undefined && { commandResults: t.commandResults }),
         })),
       };
 

@@ -71,11 +71,18 @@ const testCommands: CommandDefinition[] = [
   },
 ];
 
-// Sample command result
-const testResult: CommandResult = {
-  name: "search",
-  arguments: { query: "hello world" },
-};
+// Sample command results
+const testResults: CommandResult[] = [
+  {
+    name: "search",
+    arguments: { query: "hello world" },
+  },
+];
+
+const multipleResults: CommandResult[] = [
+  { name: "turn_on", arguments: { color: "red" } },
+  { name: "turn_off", arguments: { color: "blue" } },
+];
 
 describe("useCommand", () => {
   beforeEach(() => {
@@ -93,12 +100,12 @@ describe("useCommand", () => {
     expect(typeof result.current.clear).toBe("function");
     expect(result.current.isListening).toBe(false);
     expect(result.current.isProcessing).toBe(false);
-    expect(result.current.result).toBeNull();
+    expect(result.current.results).toEqual([]);
     expect(result.current.error).toBeNull();
   });
 
   it("should call speechOS.command on start with commands", async () => {
-    vi.mocked(speechOS.command).mockResolvedValue(testResult);
+    vi.mocked(speechOS.command).mockResolvedValue(testResults);
 
     const { result } = renderHook(() => useCommand(), { wrapper });
 
@@ -110,20 +117,20 @@ describe("useCommand", () => {
   });
 
   it("should call speechOS.stopCommand on stop", async () => {
-    vi.mocked(speechOS.stopCommand).mockResolvedValue(testResult);
+    vi.mocked(speechOS.stopCommand).mockResolvedValue(testResults);
 
     const { result } = renderHook(() => useCommand(), { wrapper });
 
     await act(async () => {
-      const commandResult = await result.current.stop();
-      expect(commandResult).toEqual(testResult);
+      const commandResults = await result.current.stop();
+      expect(commandResults).toEqual(testResults);
     });
 
     expect(speechOS.stopCommand).toHaveBeenCalled();
   });
 
-  it("should set result after stop", async () => {
-    vi.mocked(speechOS.stopCommand).mockResolvedValue(testResult);
+  it("should set results after stop", async () => {
+    vi.mocked(speechOS.stopCommand).mockResolvedValue(testResults);
 
     const { result } = renderHook(() => useCommand(), { wrapper });
 
@@ -131,21 +138,36 @@ describe("useCommand", () => {
       await result.current.stop();
     });
 
-    expect(result.current.result).toEqual(testResult);
+    expect(result.current.results).toEqual(testResults);
   });
 
-  it("should handle null result (no command matched)", async () => {
-    vi.mocked(speechOS.stopCommand).mockResolvedValue(null);
+  it("should handle empty results (no command matched)", async () => {
+    vi.mocked(speechOS.stopCommand).mockResolvedValue([]);
 
     const { result } = renderHook(() => useCommand(), { wrapper });
 
     await act(async () => {
-      const commandResult = await result.current.stop();
-      expect(commandResult).toBeNull();
+      const commandResults = await result.current.stop();
+      expect(commandResults).toEqual([]);
     });
 
-    expect(result.current.result).toBeNull();
+    expect(result.current.results).toEqual([]);
     expect(result.current.error).toBeNull();
+  });
+
+  it("should handle multiple commands in results", async () => {
+    vi.mocked(speechOS.stopCommand).mockResolvedValue(multipleResults);
+
+    const { result } = renderHook(() => useCommand(), { wrapper });
+
+    await act(async () => {
+      const commandResults = await result.current.stop();
+      expect(commandResults.length).toBe(2);
+      expect(commandResults[0].name).toBe("turn_on");
+      expect(commandResults[1].name).toBe("turn_off");
+    });
+
+    expect(result.current.results).toEqual(multipleResults);
   });
 
   it("should set error on start failure", async () => {
@@ -180,8 +202,8 @@ describe("useCommand", () => {
     expect(result.current.error).toBe("Command processing failed");
   });
 
-  it("should clear result and error on clear()", async () => {
-    vi.mocked(speechOS.stopCommand).mockResolvedValue(testResult);
+  it("should clear results and error on clear()", async () => {
+    vi.mocked(speechOS.stopCommand).mockResolvedValue(testResults);
 
     const { result } = renderHook(() => useCommand(), { wrapper });
 
@@ -189,13 +211,13 @@ describe("useCommand", () => {
       await result.current.stop();
     });
 
-    expect(result.current.result).toEqual(testResult);
+    expect(result.current.results).toEqual(testResults);
 
     act(() => {
       result.current.clear();
     });
 
-    expect(result.current.result).toBeNull();
+    expect(result.current.results).toEqual([]);
     expect(result.current.error).toBeNull();
   });
 

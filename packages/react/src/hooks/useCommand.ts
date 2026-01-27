@@ -14,17 +14,17 @@ import type { CommandDefinition, CommandResult } from "@speechos/core";
 export interface UseCommandResult {
   /** Start command listening - begins recording */
   start: (commands: CommandDefinition[]) => Promise<void>;
-  /** Stop command listening - ends recording and returns matched command */
-  stop: () => Promise<CommandResult | null>;
+  /** Stop command listening - ends recording and returns matched commands */
+  stop: () => Promise<CommandResult[]>;
   /** Whether currently listening for commands */
   isListening: boolean;
   /** Whether processing the command */
   isProcessing: boolean;
-  /** The matched command result (null if no match or not yet processed) */
-  result: CommandResult | null;
+  /** The matched command results (empty array if no matches or not yet processed) */
+  results: CommandResult[];
   /** Any error that occurred */
   error: string | null;
-  /** Clear the result and error state */
+  /** Clear the results and error state */
   clear: () => void;
 }
 
@@ -32,7 +32,8 @@ export interface UseCommandResult {
  * Simplified hook for voice command workflows
  *
  * Provides an easy-to-use interface for voice command matching
- * with automatic state management.
+ * with automatic state management. Supports matching multiple
+ * commands from a single voice input.
  *
  * @example
  * ```tsx
@@ -47,7 +48,7 @@ export interface UseCommandResult {
  * ];
  *
  * function VoiceCommands() {
- *   const { start, stop, isListening, isProcessing, result, error } = useCommand();
+ *   const { start, stop, isListening, isProcessing, results, error } = useCommand();
  *
  *   const handleCommand = async () => {
  *     await start(commands);
@@ -55,9 +56,9 @@ export interface UseCommandResult {
  *
  *   const handleStop = async () => {
  *     const matched = await stop();
- *     if (matched) {
- *       console.log('Matched command:', matched.name, matched.arguments);
- *     }
+ *     matched.forEach(cmd => {
+ *       console.log('Matched command:', cmd.name, cmd.arguments);
+ *     });
  *   };
  *
  *   return (
@@ -66,7 +67,11 @@ export interface UseCommandResult {
  *         {isListening ? 'Execute' : 'Say Command'}
  *       </button>
  *       {isProcessing && <span>Processing...</span>}
- *       {result && <p>Command: {result.name}</p>}
+ *       {results.length > 0 && (
+ *         <div>
+ *           {results.map((cmd, i) => <p key={i}>Command: {cmd.name}</p>)}
+ *         </div>
+ *       )}
  *       {error && <p style={{ color: 'red' }}>{error}</p>}
  *     </div>
  *   );
@@ -77,7 +82,7 @@ export interface UseCommandResult {
  */
 export function useCommand(): UseCommandResult {
   const { state, command, stopCommand } = useSpeechOSContext();
-  const [result, setResult] = useState<CommandResult | null>(null);
+  const [results, setResults] = useState<CommandResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const isListening =
@@ -99,12 +104,12 @@ export function useCommand(): UseCommandResult {
     [command]
   );
 
-  const stop = useCallback(async (): Promise<CommandResult | null> => {
+  const stop = useCallback(async (): Promise<CommandResult[]> => {
     try {
-      const commandResult = await stopCommand();
-      setResult(commandResult);
+      const commandResults = await stopCommand();
+      setResults(commandResults);
       setError(null);
-      return commandResult;
+      return commandResults;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to process command";
@@ -114,7 +119,7 @@ export function useCommand(): UseCommandResult {
   }, [stopCommand]);
 
   const clear = useCallback(() => {
-    setResult(null);
+    setResults([]);
     setError(null);
   }, []);
 
@@ -123,7 +128,7 @@ export function useCommand(): UseCommandResult {
     stop,
     isListening,
     isProcessing,
-    result,
+    results,
     error,
     clear,
   };

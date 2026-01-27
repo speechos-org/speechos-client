@@ -10,7 +10,7 @@ Complete reference of all events emitted by SpeechOS.
 | `transcription:complete` | `{ text }` | Transcription finished (before insertion) |
 | `edit:applied` | `{ originalContent, editedContent, element }` | Edit was applied to field |
 | `edit:complete` | `{ text, originalText }` | Edit finished (before application) |
-| `command:complete` | `{ command }` | Command matched (or null if no match) |
+| `command:complete` | `{ commands }` | Commands matched (empty array if no match) |
 | `error` | `{ code, message, source }` | An error occurred |
 | `widget:show` | `void` | Widget became visible |
 | `widget:hide` | `void` | Widget was hidden |
@@ -88,13 +88,15 @@ SpeechOS.events.on('edit:complete', ({ text, originalText }) => {
 
 ### command:complete
 
-Fired when command matching is complete.
+Fired when command matching is complete. Multiple commands can be matched from a single voice input.
 
 ```typescript
-SpeechOS.events.on('command:complete', ({ command }) => {
-  if (command) {
-    console.log(`Command matched: ${command.name}`);
-    console.log('Arguments:', command.arguments);
+SpeechOS.events.on('command:complete', ({ commands }) => {
+  if (commands.length > 0) {
+    commands.forEach(cmd => {
+      console.log(`Command matched: ${cmd.name}`);
+      console.log('Arguments:', cmd.arguments);
+    });
   } else {
     console.log('No command matched');
   }
@@ -103,13 +105,23 @@ SpeechOS.events.on('command:complete', ({ command }) => {
 
 **Payload:**
 
-- `command: CommandResult | null` — Matched command or null if no match
+- `commands: CommandResult[]` — Array of matched commands (empty if no match)
 
 **CommandResult:**
 
 ```typescript
 interface CommandResult {
+  /** Name of the matched command */
   name: string;
+
+  /**
+   * Extracted argument values.
+   * Values are typed based on the CommandArgument.type:
+   * - 'string' arguments → string
+   * - 'number' arguments → number
+   * - 'integer' arguments → number
+   * - 'boolean' arguments → boolean
+   */
   arguments: Record<string, unknown>;
 }
 ```

@@ -3,7 +3,7 @@
  */
 
 /**
- * Server error message structure received via LiveKit data channel
+ * Server error message structure received via WebSocket
  */
 export interface ServerErrorMessage {
   type: "error";
@@ -19,13 +19,6 @@ export interface ServerErrorMessage {
  * Error source indicating where the error originated
  */
 export type ErrorSource = "init" | "connection" | "timeout" | "server";
-
-/**
- * Backend type for voice sessions
- * - 'websocket': Direct WebSocket connection (lower latency, recommended)
- * - 'livekit': LiveKit WebRTC connection (legacy)
- */
-export type VoiceBackend = "websocket" | "livekit";
 
 /**
  * Configuration options for initializing SpeechOS Core
@@ -92,16 +85,6 @@ export interface VoiceSessionOptions {
   commands?: CommandDefinition[];
   /** User settings for this session */
   settings?: SessionSettings;
-}
-
-/**
- * LiveKit token response from the backend
- */
-export interface LiveKitTokenResponse {
-  token: string;
-  ws_url: string;
-  room: string;
-  identity: string;
 }
 
 /**
@@ -186,7 +169,7 @@ export interface SpeechOSState {
   /** Whether the action bubbles are expanded */
   isExpanded: boolean;
 
-  /** Whether connected to LiveKit room */
+  /** Whether connected to the backend */
   isConnected: boolean;
 
   /** Whether microphone is enabled and publishing */
@@ -243,7 +226,7 @@ export interface SpeechOSEventMap {
 
   // ============================================
   // Core transcription/edit/command events
-  // These are emitted by @speechos/core when LiveKit returns data
+  // These are emitted by @speechos/core when the backend returns data
   // ============================================
   /** Emitted when intermediate transcription is received from server (indicates audio is being processed) */
   "transcription:interim": { transcript: string; isFinal: boolean };
@@ -251,8 +234,8 @@ export interface SpeechOSEventMap {
   "transcription:complete": { text: string };
   /** Emitted when edited text is received from the server */
   "edit:complete": { text: string; originalText: string };
-  /** Emitted when command matching completes (null if no command matched) */
-  "command:complete": { command: CommandResult | null };
+  /** Emitted when command matching completes (empty array if no commands matched) */
+  "command:complete": { commands: CommandResult[] };
 
   // ============================================
   // Client DOM events

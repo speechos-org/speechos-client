@@ -228,26 +228,29 @@ console.log('Edited:', edited);
 
 ### Commands
 
-#### `speechOS.command(commands: CommandDefinition[]): Promise<CommandResult>`
+#### `speechOS.command(commands: CommandDefinition[]): Promise<CommandResult[]>`
 
-Start command listening with definitions.
+Start command listening with definitions. Returns an array of matched commands.
 
 ```typescript
 const commandPromise = speechOS.command([
-  { name: 'submit', description: 'Submit the form' }
+  { name: 'submit', description: 'Submit the form' },
+  { name: 'cancel', description: 'Cancel the form' }
 ]);
-// ... user speaks command ...
-const result = await speechOS.stopCommand();
+// ... user speaks command(s) ...
+const results = await speechOS.stopCommand();
 ```
 
-#### `speechOS.stopCommand(): Promise<CommandResult>`
+#### `speechOS.stopCommand(): Promise<CommandResult[]>`
 
-Stop command listening and get matched command.
+Stop command listening and get matched commands. Multiple commands can be matched from a single voice input.
 
 ```typescript
-const result = await speechOS.stopCommand();
-if (result) {
-  console.log('Command:', result.name, result.arguments);
+const results = await speechOS.stopCommand();
+if (results.length > 0) {
+  results.forEach(cmd => {
+    console.log('Command:', cmd.name, cmd.arguments);
+  });
 }
 ```
 
@@ -340,10 +343,10 @@ function useEdit(): UseEditResult;
 ```typescript
 interface UseCommandResult {
   start: (commands: CommandDefinition[]) => Promise<void>;
-  stop: () => Promise<CommandResult | null>;
+  stop: () => Promise<CommandResult[]>;
   isListening: boolean;
   isProcessing: boolean;
-  result: CommandResult | null;
+  results: CommandResult[];  // Array of matched commands
   error: string | null;
   clear: () => void;
 }
@@ -394,8 +397,8 @@ interface UseSpeechOSResult {
   stopDictation: () => Promise<string>;
   edit: (text: string) => Promise<string>;
   stopEdit: () => Promise<string>;
-  command: (commands: CommandDefinition[]) => Promise<CommandResult>;
-  stopCommand: () => Promise<CommandResult>;
+  command: (commands: CommandDefinition[]) => Promise<CommandResult[]>;
+  stopCommand: () => Promise<CommandResult[]>;
   cancel: () => Promise<void>;
   on: <K extends keyof SpeechOSEventMap>(
     event: K,

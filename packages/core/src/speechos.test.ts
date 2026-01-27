@@ -1,9 +1,7 @@
 /**
  * SpeechOS Core module tests
  *
- * Note: Integration tests that require mocking livekit-client are skipped
- * for now due to complex vi.mock hoisting issues. Basic initialization
- * and state management tests work correctly.
+ * Basic initialization and state management tests.
  *
  * TODO: Set up proper E2E tests for SpeechOS integration
  */

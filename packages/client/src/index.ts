@@ -14,7 +14,6 @@ export {
   getConfig,
   setConfig,
   resetConfig,
-  livekit,
   DEFAULT_HOST,
 } from "@speechos/core";
 

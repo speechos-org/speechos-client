@@ -188,10 +188,10 @@ const commands: CommandDefinition[] = [
 function VoiceCommands() {
   const {
     start,        // Start listening (pass command definitions)
-    stop,         // Stop and get matched command
+    stop,         // Stop and get matched commands
     isListening,  // Currently listening?
     isProcessing, // Processing?
-    result,       // Matched command result
+    results,      // Matched command results (array)
     error,        // Error message
     clear,        // Clear state
   } = useCommand();
@@ -201,10 +201,9 @@ function VoiceCommands() {
   };
 
   const handleStop = async () => {
-    const command = await stop();
-    if (command) {
-      executeCommand(command);
-    }
+    const matched = await stop();
+    // Execute all matched commands
+    matched.forEach(cmd => executeCommand(cmd));
   };
 
   const executeCommand = (cmd: { name: string; arguments: Record<string, unknown> }) => {
@@ -234,7 +233,13 @@ function VoiceCommands() {
       </button>
 
       {isProcessing && <span>Processing...</span>}
-      {result && <p>Command: {result.name}</p>}
+      {results.length > 0 && (
+        <div>
+          {results.map((cmd, i) => (
+            <p key={i}>Command: {cmd.name}</p>
+          ))}
+        </div>
+      )}
       {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
@@ -277,10 +282,10 @@ function EventLogger() {
     console.error(`Error from ${source}: ${message}`);
   }, []));
 
-  useSpeechOSEvents('command:complete', useCallback(({ command }) => {
-    if (command) {
-      console.log('Command matched:', command.name, command.arguments);
-    }
+  useSpeechOSEvents('command:complete', useCallback(({ commands }) => {
+    commands.forEach(cmd => {
+      console.log('Command matched:', cmd.name, cmd.arguments);
+    });
   }, []));
 
   return <div>Event logging active (check console)</div>;

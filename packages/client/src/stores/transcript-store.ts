@@ -16,8 +16,8 @@ export interface TranscriptEntry {
   originalText?: string;
   /** The raw transcript of what the user said (for command actions) */
   inputText?: string;
-  /** The matched command result (for command actions) */
-  commandResult?: CommandResult | null;
+  /** The matched command results (for command actions) - empty array if no matches */
+  commandResults?: CommandResult[];
   /** The command definitions that were available (for command actions) */
   commandConfig?: CommandDefinition[];
 }
@@ -80,8 +80,8 @@ export function resetMemoryCache(): void {
 export interface SaveCommandOptions {
   /** The raw transcript of what the user said */
   inputText?: string;
-  /** The matched command result */
-  commandResult?: CommandResult | null;
+  /** The matched command results (empty array if no matches) */
+  commandResults?: CommandResult[];
   /** The command definitions that were available */
   commandConfig?: CommandDefinition[];
 }
@@ -110,7 +110,7 @@ export function saveTranscript(
   if (action === "command" && typeof originalTextOrOptions === "object") {
     const options = originalTextOrOptions as SaveCommandOptions;
     if (options.inputText !== undefined) entry.inputText = options.inputText;
-    if (options.commandResult !== undefined) entry.commandResult = options.commandResult;
+    if (options.commandResults !== undefined) entry.commandResults = options.commandResults;
     if (options.commandConfig !== undefined) entry.commandConfig = options.commandConfig;
   }
 

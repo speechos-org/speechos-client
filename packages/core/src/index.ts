@@ -21,8 +21,7 @@ export {
   clearSettingsToken,
   DEFAULT_HOST,
 } from "./config.js";
-export { livekit, Deferred } from "./livekit.js";
-export { websocket } from "./websocket.js";
+export { Deferred, websocket } from "./websocket.js";
 export { getBackend } from "./backend.js";
 export type { VoiceBackend } from "./backend.js";
 
@@ -35,7 +34,6 @@ export type {
   StateChangeCallback,
   UnsubscribeFn,
   RecordingState,
-  LiveKitTokenResponse,
   ServerErrorMessage,
   ErrorSource,
   UserVocabularyData,

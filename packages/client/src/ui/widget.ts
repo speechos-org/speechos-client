@@ -389,7 +389,6 @@ export class SpeechOSWidget extends LitElement {
       return;
     }
     if (!clickedInWidget) {
-      getBackend().stopAutoRefresh?.();
       // Don't hide if alwaysVisible is enabled
       if (!isAlwaysVisible()) {
         state.hide();
@@ -535,22 +534,6 @@ export class SpeechOSWidget extends LitElement {
     if (this.widgetState.recordingState === "idle") {
       // Clear command feedback on any mic click
       this.clearActionFeedback();
-
-      // If we're expanding, prefetch the token to reduce latency when user selects an action
-      if (!this.widgetState.isExpanded) {
-        // Fire and forget - we don't need to wait for this (LiveKit only)
-        const backend = getBackend();
-        backend.prefetchToken?.()?.catch((error: unknown) => {
-          // Log but don't show error to user - they haven't started an action yet
-          const config = getConfig();
-          if (config.debug) {
-            console.warn("[SpeechOS] Token prefetch failed:", error);
-          }
-        });
-      } else {
-        // Widget is collapsing - stop auto-refresh since user is done with commands
-        getBackend().stopAutoRefresh?.();
-      }
       state.toggleExpanded();
     }
   }
@@ -599,8 +582,6 @@ export class SpeechOSWidget extends LitElement {
         state.completeRecording();
         events.emit("action:select", { action: "dictate" });
         backend.disconnect().catch(() => {});
-        // Start auto-refresh to keep token fresh for subsequent commands (LiveKit only)
-        backend.startAutoRefresh?.();
       } catch (error) {
         // Track as failed result
         this.trackActionResult(false);
@@ -647,7 +628,6 @@ export class SpeechOSWidget extends LitElement {
 
   private handleCloseWidget(): void {
     this.clearActionFeedback();
-    getBackend().stopAutoRefresh?.();
     state.hide();
   }
 
@@ -1033,7 +1013,6 @@ export class SpeechOSWidget extends LitElement {
         this.editSelectionEnd = null;
         this.editSelectedText = "";
         backend.disconnect().catch(() => {});
-        backend.startAutoRefresh?.();
         return;
       }
 
@@ -1041,8 +1020,6 @@ export class SpeechOSWidget extends LitElement {
       this.trackActionResult(true);
       this.applyEdit(editedText);
       backend.disconnect().catch(() => {});
-      // Start auto-refresh to keep token fresh for subsequent commands (LiveKit only)
-      backend.startAutoRefresh?.();
     } catch (error) {
       // Track as failed result
       this.trackActionResult(false);
@@ -1107,25 +1084,25 @@ export class SpeechOSWidget extends LitElement {
     const backend = getBackend();
 
     try {
-      const result: CommandResult | null = await this.withMinDisplayTime(
+      const results: CommandResult[] = await this.withMinDisplayTime(
         backend.requestCommand(commands),
         300
       );
 
-      // Track result - null result means no command matched (possibly no audio)
-      this.trackActionResult(result !== null);
+      // Track result - empty array means no commands matched (possibly no audio)
+      this.trackActionResult(results.length > 0);
 
       // Get input text from the backend if available
       const inputText = (backend as { getLastInputText?: () => string | undefined }).getLastInputText?.();
 
-      // Save to transcript store
-      const displayText = result
-        ? `${result.name}${Object.keys(result.arguments).length > 0 ? `: ${JSON.stringify(result.arguments)}` : ""}`
+      // Save to transcript store - format display text for multiple commands
+      const displayText = results.length > 0
+        ? results.map(r => `${r.name}${Object.keys(r.arguments).length > 0 ? `: ${JSON.stringify(r.arguments)}` : ""}`).join(" | ")
         : "No command matched";
 
       transcriptStore.saveTranscript(displayText, "command", {
         inputText,
-        commandResult: result,
+        commandResults: results,
         commandConfig: commands,
       });
 
@@ -1135,11 +1112,9 @@ export class SpeechOSWidget extends LitElement {
       state.completeRecording();
 
       // Show command feedback
-      this.showActionFeedback(result ? "command-success" : "command-none");
+      this.showActionFeedback(results.length > 0 ? "command-success" : "command-none");
 
       backend.disconnect().catch(() => {});
-      // Start auto-refresh to keep token fresh for subsequent commands (LiveKit only)
-      backend.startAutoRefresh?.();
     } catch (error) {
       // Track as failed result
       this.trackActionResult(false);
@@ -1252,7 +1227,7 @@ export class SpeechOSWidget extends LitElement {
 
     // Stop audio capture and disconnect immediately (don't wait for transcription)
     // Kick this off before opening settings so audio stops fast, but don't block UI.
-    const disconnectPromise = getBackend().disconnect().catch((error) => {
+    const disconnectPromise = getBackend().disconnect().catch((error: unknown) => {
       if (getConfig().debug) {
         console.log("[SpeechOS] Disconnect failed while opening settings", error);
       }

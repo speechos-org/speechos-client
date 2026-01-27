@@ -1,8 +1,8 @@
 /**
  * WebSocket integration for SpeechOS SDK.
  *
- * Provides a direct WebSocket connection to the backend for voice sessions,
- * bypassing LiveKit for lower latency. Uses audio buffering to capture
+ * Provides a direct WebSocket connection to the backend for voice sessions.
+ * Uses audio buffering to capture
  * audio immediately while the connection is being established.
  */
 
@@ -125,7 +125,7 @@ class WebSocketManager {
   private pendingAuth: Deferred<void> | null = null;
   private pendingTranscript: Deferred<string> | null = null;
   private pendingEditText: Deferred<string> | null = null;
-  private pendingCommand: Deferred<CommandResult | null> | null = null;
+  private pendingCommand: Deferred<CommandResult[]> | null = null;
 
   // Track pending audio chunk sends (for waiting before transcript request)
   private pendingAudioSends: Set<Promise<void>> = new Set();
@@ -450,18 +450,18 @@ class WebSocketManager {
     this.editOriginalText = null;
   }
 
-  private handleCommandResult(message: { command: CommandResult | null; transcript?: string }): void {
-    const commandResult = message.command || null;
+  private handleCommandResult(message: { commands: CommandResult[]; transcript?: string }): void {
+    const commands = message.commands || [];
 
     // Store the input text (what the user said) if provided by the backend
     this.lastInputText = message.transcript;
 
     // Emit command:complete event
-    events.emit('command:complete', { command: commandResult });
+    events.emit('command:complete', { commands });
 
     // Resolve pending promise
     if (this.pendingCommand) {
-      this.pendingCommand.resolve(commandResult);
+      this.pendingCommand.resolve(commands);
       this.pendingCommand = null;
     }
   }
@@ -566,8 +566,9 @@ class WebSocketManager {
   /**
    * Request command matching using the transcript as input.
    * Note: The command definitions were already sent in the auth message via startVoiceSession.
+   * Returns an array of matched commands (empty array if no matches).
    */
-  async requestCommand(_commands: CommandDefinition[]): Promise<CommandResult | null> {
+  async requestCommand(_commands: CommandDefinition[]): Promise<CommandResult[]> {
     const config = getConfig();
 
     if (config.debug) {
@@ -578,7 +579,7 @@ class WebSocketManager {
     await this.stopAudioCapture();
 
     // Create deferred for command result
-    this.pendingCommand = new Deferred<CommandResult | null>();
+    this.pendingCommand = new Deferred<CommandResult[]>();
     this.pendingCommand.setTimeout(
       RESPONSE_TIMEOUT_MS,
       'Command request timed out. Please try again.',
@@ -649,7 +650,7 @@ class WebSocketManager {
    * Wait for the WebSocket send buffer to drain.
    *
    * This ensures all audio data has been transmitted before we request
-   * the transcript. Uses the same pattern as LiveKit's ReadableStream approach.
+   * the transcript.
    */
   private async waitForBufferDrain(): Promise<void> {
     if (!this.ws || this.ws.readyState !== WS_OPEN) {

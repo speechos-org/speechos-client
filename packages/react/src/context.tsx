@@ -41,8 +41,8 @@ export interface SpeechOSContextValue {
   stopDictation: () => Promise<string>;
   edit: (text: string) => Promise<string>;
   stopEdit: () => Promise<string>;
-  command: (commands: CommandDefinition[]) => Promise<CommandResult | null>;
-  stopCommand: () => Promise<CommandResult | null>;
+  command: (commands: CommandDefinition[]) => Promise<CommandResult[]>;
+  stopCommand: () => Promise<CommandResult[]>;
   cancel: () => Promise<void>;
 
   // Events

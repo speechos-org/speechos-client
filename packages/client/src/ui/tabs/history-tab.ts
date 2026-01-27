@@ -270,12 +270,12 @@ export class SpeechOSHistoryTab extends LitElement {
   private renderCommandDetails(entry: TranscriptEntry) {
     // Show the transcript text (what the user said)
     const displayText = entry.inputText || entry.text;
-    const commandName = entry.commandResult?.name;
+    const commandResults = entry.commandResults || [];
 
     return html`
       <div class="transcript-text">${displayText}</div>
-      ${commandName
-        ? html`<div class="command-matched">Matched: <code>${commandName}</code></div>`
+      ${commandResults.length > 0
+        ? html`<div class="command-matched">Matched: ${commandResults.map((r, i) => html`${i > 0 ? ", " : ""}<code>${r.name}</code>`)}</div>`
         : null}
     `;
   }
