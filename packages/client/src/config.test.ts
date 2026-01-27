@@ -10,6 +10,8 @@ import {
   resetClientConfig,
   isAlwaysVisible,
   useExternalSettings,
+  getReadAloudConfig,
+  isReadAloudEnabled,
 } from "./config.js";
 
 describe("client config", () => {
@@ -130,6 +132,105 @@ describe("client config", () => {
       resetClientConfig();
 
       expect(useExternalSettings()).toBe(false);
+    });
+  });
+
+  describe("getReadAloudConfig", () => {
+    it("should return default config", () => {
+      const config = getReadAloudConfig();
+
+      expect(config.enabled).toBe(true);
+      expect(config.minLength).toBe(1);
+      expect(config.maxLength).toBe(null);
+      expect(config.showOnSelection).toBe(true);
+    });
+
+    it("should return disabled config when readAloud is false", () => {
+      setClientConfig({ readAloud: false } as any);
+
+      const config = getReadAloudConfig();
+      expect(config.enabled).toBe(false);
+      expect(config.minLength).toBe(1);
+      expect(config.maxLength).toBe(null);
+      expect(config.showOnSelection).toBe(true);
+    });
+
+    it("should return custom config when readAloud object is provided", () => {
+      setClientConfig({
+        readAloud: {
+          enabled: true,
+          minLength: 5,
+          maxLength: 1000,
+          showOnSelection: false,
+        },
+      } as any);
+
+      const config = getReadAloudConfig();
+      expect(config.enabled).toBe(true);
+      expect(config.minLength).toBe(5);
+      expect(config.maxLength).toBe(1000);
+      expect(config.showOnSelection).toBe(false);
+    });
+
+    it("should return default config after reset", () => {
+      setClientConfig({
+        readAloud: {
+          enabled: false,
+          minLength: 10,
+        },
+      } as any);
+      resetClientConfig();
+
+      const config = getReadAloudConfig();
+      expect(config.enabled).toBe(true);
+      expect(config.minLength).toBe(1);
+      expect(config.maxLength).toBe(null);
+      expect(config.showOnSelection).toBe(true);
+    });
+  });
+
+  describe("isReadAloudEnabled", () => {
+    it("should return true by default", () => {
+      expect(isReadAloudEnabled()).toBe(true);
+    });
+
+    it("should return false when readAloud is disabled", () => {
+      setClientConfig({ readAloud: false } as any);
+
+      expect(isReadAloudEnabled()).toBe(false);
+    });
+
+    it("should return false when readAloud.enabled is false", () => {
+      setClientConfig({
+        readAloud: {
+          enabled: false,
+        },
+      } as any);
+
+      expect(isReadAloudEnabled()).toBe(false);
+    });
+
+    it("should return true when readAloud is true", () => {
+      setClientConfig({ readAloud: true } as any);
+
+      expect(isReadAloudEnabled()).toBe(true);
+    });
+
+    it("should return true when readAloud.enabled is true", () => {
+      setClientConfig({
+        readAloud: {
+          enabled: true,
+        },
+      } as any);
+
+      expect(isReadAloudEnabled()).toBe(true);
+    });
+
+    it("should return true after reset", () => {
+      setClientConfig({ readAloud: false } as any);
+      resetClientConfig();
+
+      expect(isReadAloudEnabled()).toBe(true);
     });
   });
 });
