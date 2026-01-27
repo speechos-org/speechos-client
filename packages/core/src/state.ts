@@ -20,6 +20,8 @@ const initialState: SpeechOSState = {
   isMicEnabled: false,
   activeAction: null,
   focusedElement: null,
+  selectionText: null,
+  selectionElement: null,
   recordingState: "idle",
   errorMessage: null,
 };
@@ -137,6 +139,22 @@ class StateManager {
    */
   setFocusedElement(element: HTMLElement | null): void {
     this.setState({ focusedElement: element });
+  }
+
+  /**
+   * Set the current text selection
+   * @param text - Selected text (null to clear)
+   * @param element - Element associated with selection
+   */
+  setSelection(text: string | null, element: HTMLElement | null): void {
+    this.setState({ selectionText: text, selectionElement: element });
+  }
+
+  /**
+   * Clear the current text selection
+   */
+  clearSelection(): void {
+    this.setState({ selectionText: null, selectionElement: null });
   }
 
   /**

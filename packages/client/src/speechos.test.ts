@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { SpeechOS } from "./speechos.js";
 import { formDetector, type FormDetectorInterface } from "./form-detector.js";
+import { selectionDetector } from "./selection-detector.js";
 import { state, events, resetConfig } from "@speechos/core";
 import { resetClientConfig } from "./config.js";
 import { resetTextInputHandler, type TextInputHandlerInterface } from "./text-input-handler.js";
@@ -94,6 +95,26 @@ describe("SpeechOS", () => {
       await SpeechOS.destroy();
 
       expect(customDetector.stop).toHaveBeenCalled();
+    });
+  });
+
+  describe("init() read aloud config", () => {
+    it("should start selection detector when readAloud is enabled by default", () => {
+      const startSpy = vi.spyOn(selectionDetector, "start");
+
+      SpeechOS.init({ apiKey: "test-key" });
+
+      expect(startSpy).toHaveBeenCalled();
+      startSpy.mockRestore();
+    });
+
+    it("should NOT start selection detector when readAloud is false", () => {
+      const startSpy = vi.spyOn(selectionDetector, "start");
+
+      SpeechOS.init({ apiKey: "test-key", readAloud: false });
+
+      expect(startSpy).not.toHaveBeenCalled();
+      startSpy.mockRestore();
     });
   });
 

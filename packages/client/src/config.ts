@@ -54,6 +54,37 @@ export interface SpeechOSClientConfig extends SpeechOSCoreConfig {
    * Default: false
    */
   useExternalSettings?: boolean;
+  /**
+   * Read-aloud behavior for selected text.
+   * - true (default): enable with defaults
+   * - false: disable read-aloud
+   * - ReadAloudConfig: customize behavior
+   */
+  readAloud?: boolean | ReadAloudConfig;
+}
+
+/**
+ * Configuration for read-aloud behavior
+ */
+export interface ReadAloudConfig {
+  /** Enable read-aloud (default: true) */
+  enabled?: boolean;
+  /** Minimum selected text length to enable read button (default: 1) */
+  minLength?: number;
+  /** Maximum characters to read (default: no limit) */
+  maxLength?: number;
+  /** Auto-show widget when text is selected (default: true) */
+  showOnSelection?: boolean;
+}
+
+/**
+ * Resolved read-aloud configuration
+ */
+export interface ResolvedReadAloudConfig {
+  enabled: boolean;
+  minLength: number;
+  maxLength: number | null;
+  showOnSelection: boolean;
 }
 
 /**
@@ -64,6 +95,7 @@ export interface ResolvedClientConfig {
   zIndex: number;
   alwaysVisible: boolean;
   useExternalSettings: boolean;
+  readAloud: ResolvedReadAloudConfig;
 }
 
 /**
@@ -74,6 +106,12 @@ const defaultClientConfig: ResolvedClientConfig = {
   zIndex: 999999,
   alwaysVisible: false,
   useExternalSettings: false,
+  readAloud: {
+    enabled: true,
+    minLength: 1,
+    maxLength: null,
+    showOnSelection: true,
+  },
 };
 
 /**
@@ -87,11 +125,13 @@ let currentClientConfig: ResolvedClientConfig = { ...defaultClientConfig };
  * @returns Resolved client configuration
  */
 export function validateClientConfig(config: SpeechOSClientConfig): ResolvedClientConfig {
+  const resolvedReadAloud = resolveReadAloudConfig(config.readAloud);
   const resolved: ResolvedClientConfig = {
     commands: config.commands ?? defaultClientConfig.commands,
     zIndex: config.zIndex ?? defaultClientConfig.zIndex,
     alwaysVisible: config.alwaysVisible ?? defaultClientConfig.alwaysVisible,
     useExternalSettings: config.useExternalSettings ?? defaultClientConfig.useExternalSettings,
+    readAloud: resolvedReadAloud,
   };
 
   // Validate zIndex
@@ -100,6 +140,40 @@ export function validateClientConfig(config: SpeechOSClientConfig): ResolvedClie
       `Invalid zIndex "${resolved.zIndex}". Using default ${defaultClientConfig.zIndex}.`
     );
     resolved.zIndex = defaultClientConfig.zIndex;
+  }
+
+  return resolved;
+}
+
+function resolveReadAloudConfig(
+  config?: boolean | ReadAloudConfig
+): ResolvedReadAloudConfig {
+  if (config === false) {
+    return {
+      ...defaultClientConfig.readAloud,
+      enabled: false,
+    };
+  }
+
+  if (config === true || config === undefined) {
+    return { ...defaultClientConfig.readAloud };
+  }
+
+  const resolved: ResolvedReadAloudConfig = {
+    enabled: config.enabled ?? defaultClientConfig.readAloud.enabled,
+    minLength: config.minLength ?? defaultClientConfig.readAloud.minLength,
+    maxLength:
+      typeof config.maxLength === "number" ? config.maxLength : defaultClientConfig.readAloud.maxLength,
+    showOnSelection:
+      config.showOnSelection ?? defaultClientConfig.readAloud.showOnSelection,
+  };
+
+  if (resolved.minLength < 1) {
+    resolved.minLength = 1;
+  }
+
+  if (resolved.maxLength !== null && resolved.maxLength < resolved.minLength) {
+    resolved.maxLength = resolved.minLength;
   }
 
   return resolved;
@@ -160,4 +234,18 @@ export function isAlwaysVisible(): boolean {
  */
 export function useExternalSettings(): boolean {
   return currentClientConfig.useExternalSettings;
+}
+
+/**
+ * Get read-aloud configuration
+ */
+export function getReadAloudConfig(): ResolvedReadAloudConfig {
+  return { ...currentClientConfig.readAloud };
+}
+
+/**
+ * Check if read-aloud is enabled
+ */
+export function isReadAloudEnabled(): boolean {
+  return currentClientConfig.readAloud.enabled;
 }

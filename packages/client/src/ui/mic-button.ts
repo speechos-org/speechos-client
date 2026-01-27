@@ -1002,6 +1002,9 @@ export class SpeechOSMicButton extends LitElement {
   @property({ type: Boolean })
   showNoAudioWarning = false;
 
+  @property({ type: Boolean })
+  reading = false;
+
   private handleClick(e: Event): void {
     e.stopPropagation();
     e.preventDefault();
@@ -1011,6 +1014,13 @@ export class SpeechOSMicButton extends LitElement {
       // Stop recording
       this.dispatchEvent(
         new CustomEvent("stop-recording", {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    } else if (this.reading && this.recordingState === "idle") {
+      this.dispatchEvent(
+        new CustomEvent("stop-reading", {
           bubbles: true,
           composed: true,
         })
@@ -1089,9 +1099,14 @@ export class SpeechOSMicButton extends LitElement {
 
   private getButtonClass(): string {
     const classes = ["mic-button"];
+    const isReading = this.reading && this.recordingState === "idle";
 
     if (this.expanded && this.recordingState === "idle") {
       classes.push("expanded");
+    }
+
+    if (isReading) {
+      classes.push("recording");
     }
 
     if (this.recordingState !== "idle") {
@@ -1109,6 +1124,9 @@ export class SpeechOSMicButton extends LitElement {
   }
 
   private renderIcon(): TemplateResult {
+    if (this.reading && this.recordingState === "idle") {
+      return stopIcon(20);
+    }
     switch (this.recordingState) {
       case "connecting":
         return loaderIcon(24);
@@ -1124,6 +1142,9 @@ export class SpeechOSMicButton extends LitElement {
   }
 
   private getAriaLabel(): string {
+    if (this.reading && this.recordingState === "idle") {
+      return "Stop reading";
+    }
     switch (this.recordingState) {
       case "connecting":
         return "Connecting...";
@@ -1172,6 +1193,9 @@ export class SpeechOSMicButton extends LitElement {
 
   private shouldShowVisualizer(): boolean {
     // Show visualizer during recording when not in edit mode with preview text
+    if (this.reading && this.recordingState === "idle") {
+      return false;
+    }
     return (
       this.recordingState === "recording" &&
       !(this.activeAction === "edit" && this.editPreviewText)
@@ -1199,7 +1223,9 @@ export class SpeechOSMicButton extends LitElement {
   }
 
   render(): TemplateResult {
-    const showPulse = this.recordingState === "recording";
+    const showPulse =
+      this.recordingState === "recording" ||
+      (this.reading && this.recordingState === "idle");
     const showSiriConnecting = this.recordingState === "connecting";
     const showSiriTranscribe =
       this.recordingState === "processing" && this.activeAction !== "edit";

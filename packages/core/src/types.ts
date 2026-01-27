@@ -107,7 +107,7 @@ export interface UserVocabularyData {
 /**
  * Available actions that can be triggered from the widget
  */
-export type SpeechOSAction = "dictate" | "edit" | "command";
+export type SpeechOSAction = "dictate" | "edit" | "command" | "read";
 
 // ============================================
 // Command types for voice command matching
@@ -181,6 +181,12 @@ export interface SpeechOSState {
   /** The form field element that currently has focus (set by client) */
   focusedElement: HTMLElement | null;
 
+  /** Currently selected text (if any) */
+  selectionText: string | null;
+
+  /** Element associated with the current selection (if any) */
+  selectionElement: HTMLElement | null;
+
   /** Current recording state */
   recordingState: RecordingState;
 
@@ -215,8 +221,14 @@ export interface SpeechOSEventMap {
   // ============================================
   // Action events
   // ============================================
-  /** Emitted when user selects an action (dictate/edit) */
+  /** Emitted when user selects an action */
   "action:select": { action: SpeechOSAction };
+
+  // ============================================
+  // Selection events (client only)
+  // ============================================
+  /** Emitted when selected text changes (empty string when cleared) */
+  "selection:change": { text: string; element: HTMLElement | null };
 
   // ============================================
   // State events
@@ -286,6 +298,8 @@ export interface SpeechOSEventMap {
   "tts:playback:start": { text: string };
   /** Emitted when audio playback finishes */
   "tts:playback:complete": { text: string };
+  /** Emitted when audio playback is stopped */
+  "tts:playback:stop": { text: string | null };
 
   // ============================================
   // TTS error event

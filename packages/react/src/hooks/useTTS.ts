@@ -92,6 +92,10 @@ export function useTTS(): UseTTSResult {
       setIsPlaying(false);
     });
 
+    const unsubStop = events.on("tts:playback:stop", () => {
+      setIsPlaying(false);
+    });
+
     const unsubError = events.on("tts:error", ({ message, phase }) => {
       if (phase === "playback") {
         setIsPlaying(false);
@@ -102,6 +106,7 @@ export function useTTS(): UseTTSResult {
     return () => {
       unsubStart();
       unsubComplete();
+      unsubStop();
       unsubError();
     };
   }, []);

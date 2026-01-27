@@ -123,12 +123,22 @@ export {
   getCommands,
   getZIndex,
   useExternalSettings,
+  getReadAloudConfig,
+  isReadAloudEnabled,
 } from "./config.js";
-export type { SpeechOSClientConfig, ResolvedClientConfig } from "./config.js";
+export type {
+  SpeechOSClientConfig,
+  ResolvedClientConfig,
+  ReadAloudConfig,
+  ResolvedReadAloudConfig,
+} from "./config.js";
 
 // Client-specific exports
 export { formDetector, FormDetector } from "./form-detector.js";
 export type { FormDetectorInterface } from "./form-detector.js";
+
+export { selectionDetector, SelectionDetector } from "./selection-detector.js";
+export type { SelectionDetectorInterface } from "./selection-detector.js";
 
 export {
   defaultTextInputHandler,

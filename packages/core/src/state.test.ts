@@ -18,6 +18,8 @@ describe("StateManager", () => {
       expect(s.isMicEnabled).toBe(false);
       expect(s.activeAction).toBe(null);
       expect(s.focusedElement).toBe(null);
+      expect(s.selectionText).toBe(null);
+      expect(s.selectionElement).toBe(null);
       expect(s.recordingState).toBe("idle");
       expect(s.errorMessage).toBe(null);
     });
@@ -47,6 +49,27 @@ describe("StateManager", () => {
       expect(state.getState().isExpanded).toBe(true);
       state.toggleExpanded();
       expect(state.getState().isExpanded).toBe(false);
+    });
+  });
+
+  describe("selection state", () => {
+    it("should set selection text and element", () => {
+      const element = document.createElement("div");
+      state.setSelection("Hello", element);
+
+      const s = state.getState();
+      expect(s.selectionText).toBe("Hello");
+      expect(s.selectionElement).toBe(element);
+    });
+
+    it("should clear selection", () => {
+      const element = document.createElement("div");
+      state.setSelection("Hello", element);
+      state.clearSelection();
+
+      const s = state.getState();
+      expect(s.selectionText).toBe(null);
+      expect(s.selectionElement).toBe(null);
     });
   });
 
@@ -188,6 +211,8 @@ describe("StateManager", () => {
       expect(s.isMicEnabled).toBe(false);
       expect(s.activeAction).toBe(null);
       expect(s.recordingState).toBe("idle");
+      expect(s.selectionText).toBe(null);
+      expect(s.selectionElement).toBe(null);
     });
   });
 

@@ -17,7 +17,14 @@ import {
   SpeechOSEventEmitter,
 } from "@speechos/core";
 import { formDetector, type FormDetectorInterface } from "./form-detector.js";
-import { setClientConfig, getClientConfig, resetClientConfig, isAlwaysVisible } from "./config.js";
+import { selectionDetector, type SelectionDetectorInterface } from "./selection-detector.js";
+import {
+  setClientConfig,
+  getClientConfig,
+  resetClientConfig,
+  isAlwaysVisible,
+  isReadAloudEnabled,
+} from "./config.js";
 import type { SpeechOSClientConfig } from "./config.js";
 import { setTextInputHandler, resetTextInputHandler } from "./text-input-handler.js";
 import {
@@ -54,6 +61,7 @@ export class SpeechOS {
   private static widgetElement: HTMLElement | null = null;
   private static isInitialized = false;
   private static activeFormDetector: FormDetectorInterface | null = null;
+  private static activeSelectionDetector: SelectionDetectorInterface | null = null;
 
   /**
    * Initialize the SpeechOS SDK
@@ -105,6 +113,12 @@ export class SpeechOS {
     }
     // If formDetection === false, don't start any form detector
 
+    // Start selection detector for read-aloud if enabled
+    if (isReadAloudEnabled()) {
+      selectionDetector.start();
+      this.activeSelectionDetector = selectionDetector;
+    }
+
     // Handle custom text input handler
     if (config.textInputHandler) {
       setTextInputHandler(config.textInputHandler);
@@ -147,6 +161,10 @@ export class SpeechOS {
     if (this.activeFormDetector) {
       this.activeFormDetector.stop();
       this.activeFormDetector = null;
+    }
+    if (this.activeSelectionDetector) {
+      this.activeSelectionDetector.stop();
+      this.activeSelectionDetector = null;
     }
 
     // Disconnect from voice backend

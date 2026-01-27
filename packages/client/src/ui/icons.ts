@@ -60,6 +60,16 @@ export const editIcon = (size = 18): TemplateResult =>
   );
 
 /**
+ * Speaker icon for read-aloud action
+ * Lucide Volume2 icon paths
+ */
+export const readIcon = (size = 18): TemplateResult =>
+  createIcon(
+    '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+    size
+  );
+
+/**
  * Stop/Square icon for stopping recording
  * Lucide Square icon (filled)
  */

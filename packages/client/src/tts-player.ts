@@ -84,6 +84,8 @@ export class TTSPlayer {
    * Stop current audio playback
    */
   stop(): void {
+    const text = this.currentText;
+    const wasPlaying = this._isPlaying;
     if (this.playbackResolve) {
       this.playbackResolve();
     }
@@ -98,6 +100,9 @@ export class TTSPlayer {
     }
     this._isPlaying = false;
     this.currentText = null;
+    if (wasPlaying || text) {
+      events.emit("tts:playback:stop", { text: text ?? null });
+    }
   }
 
   /**

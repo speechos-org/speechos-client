@@ -355,18 +355,29 @@ describe("TTSPlayer", () => {
         contentType: "audio/mpeg",
       });
 
+      const stopListener = vi.fn();
+      const unsubscribe = events.on("tts:playback:stop", stopListener);
+      const startPromise = new Promise<void>((resolve) => {
+        const off = events.on("tts:playback:start", () => {
+          off();
+          resolve();
+        });
+      });
+
       // Don't await so we can call stop mid-playback
       const speakPromise = player.speak("Hello");
 
-      // Give it time to start
-      await new Promise((r) => setTimeout(r, 0));
+      // Wait for playback to start
+      await startPromise;
 
       player.stop();
 
       expect(player.isPlaying()).toBe(false);
+      expect(stopListener).toHaveBeenCalledWith({ text: "Hello" });
 
       // Wait for speak to complete/reject
       await speakPromise.catch(() => {});
+      unsubscribe();
     });
 
     it("should be safe to call when not playing", () => {

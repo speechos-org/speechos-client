@@ -24,8 +24,11 @@ import {
   type CommandDefinition,
   type CommandResult,
 } from "@speechos/core";
-import type { FormDetectorInterface } from "@speechos/client";
-import type { TextInputHandlerInterface } from "@speechos/client";
+import type {
+  FormDetectorInterface,
+  TextInputHandlerInterface,
+  ReadAloudConfig,
+} from "@speechos/client";
 
 /**
  * Context value exposed by SpeechOSProvider
@@ -91,6 +94,13 @@ export interface SpeechOSReactConfig extends SpeechOSCoreConfig {
    * Default: false
    */
   useExternalSettings?: boolean;
+  /**
+   * Read-aloud behavior for selected text.
+   * - true (default): enable with defaults
+   * - false: disable read-aloud
+   * - ReadAloudConfig: customize behavior
+   */
+  readAloud?: boolean | ReadAloudConfig;
 }
 
 /**

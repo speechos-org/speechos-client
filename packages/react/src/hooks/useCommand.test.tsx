@@ -16,8 +16,10 @@ const mockState = {
   isExpanded: false,
   isConnected: false,
   isMicEnabled: false,
-  activeAction: null as "dictate" | "edit" | "command" | null,
+  activeAction: null as "dictate" | "edit" | "command" | "read" | null,
   focusedElement: null,
+  selectionText: null,
+  selectionElement: null,
   recordingState: "idle" as const,
   errorMessage: null,
 };

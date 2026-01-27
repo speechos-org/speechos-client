@@ -129,10 +129,11 @@ export class FormDetector implements FormDetectorInterface {
           const isWidgetFocused = widget && (widget.contains(activeElement) || widget.shadowRoot?.contains(activeElement));
           // Check if focus is on an element with data-speechos-no-close
           const isNoCloseElementFocused = Boolean(activeElement?.closest("[data-speechos-no-close]"));
+          const hasSelection = Boolean(state.getState().selectionText);
 
           // Only hide if no form field is focused AND widget isn't focused AND not a no-close element
           // AND alwaysVisible is not enabled
-          if (!isFormField(activeElement) && !isWidgetFocused && !isNoCloseElementFocused) {
+          if (!isFormField(activeElement) && !isWidgetFocused && !isNoCloseElementFocused && !hasSelection) {
             state.setFocusedElement(null);
             // Don't hide if alwaysVisible is enabled
             if (!isAlwaysVisible()) {
