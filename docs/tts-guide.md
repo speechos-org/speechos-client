@@ -146,8 +146,9 @@ Voice IDs are validated server-side. Pass any valid voice ID, or omit to use the
 ### Voice Selection (Widget)
 
 The widget settings include a voice selector. This setting is stored locally and
-applies to widget-based playback (read-aloud and TTS). Backend support for voice
-settings is planned; for now it remains local.
+applies to widget-based playback (read-aloud and TTS). Voice settings (including
+`voice.voiceId`) are synchronized via `settings-sync` and merged from the server
+where settings sync is enabled, while still being stored locally on the client.
 
 ```typescript
 // Use server default voice
