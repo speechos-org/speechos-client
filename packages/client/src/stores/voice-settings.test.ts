@@ -38,7 +38,7 @@ describe("voice-settings", () => {
   });
 
   it("should set voice id and persist", () => {
-    const target = SUPPORTED_VOICES[1];
+    const target = SUPPORTED_VOICES[0]; // Use George, not Rachel (Rachel is the default)
     setVoiceId(target.id);
 
     expect(getVoiceId()).toBe(target.id);
