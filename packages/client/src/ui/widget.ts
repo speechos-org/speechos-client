@@ -34,6 +34,7 @@ import {
 } from "../config.js";
 import { getSessionSettings } from "../speechos.js";
 import { transcriptStore } from "../stores/transcript-store.js";
+import { getVoiceId } from "../stores/voice-settings.js";
 import { tts } from "../tts-player.js";
 import { animations, themeStyles } from "./styles/theme.js";
 
@@ -252,11 +253,6 @@ export class SpeechOSWidget extends LitElement {
         }
         this.settingsOpen = false;
         this.settingsOpenFromWarning = false;
-      } else if (!newState.isExpanded && !this.settingsOpenFromWarning) {
-        if (getConfig().debug && this.settingsOpen) {
-          console.log("[SpeechOS] Closing settings modal: widget collapsed");
-        }
-        this.settingsOpen = false;
       }
       // Clear custom position when focused element changes (re-anchor to new element)
       if (newState.focusedElement !== this.widgetState.focusedElement) {
@@ -460,6 +456,9 @@ export class SpeechOSWidget extends LitElement {
   }
 
   private handleClickOutside(event: MouseEvent): void {
+    if (this.settingsOpen) {
+      return;
+    }
     const target = event.target as Node;
 
     // Check if clicked element or ancestor has no-close attribute (before any other checks)
@@ -1022,7 +1021,7 @@ export class SpeechOSWidget extends LitElement {
 
     try {
       this.isReading = true;
-      await tts.speak(textToRead);
+      await tts.speak(textToRead, { voiceId: getVoiceId() });
     } catch (error) {
       this.isReading = false;
       if (getConfig().debug) {

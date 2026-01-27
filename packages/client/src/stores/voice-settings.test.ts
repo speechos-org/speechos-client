@@ -22,7 +22,7 @@ describe("voice-settings", () => {
 
   it("should return default settings when nothing is stored", () => {
     const settings = getVoiceSettings();
-    const defaultVoiceId = SUPPORTED_VOICES.find((v) => v.name === "Bella")?.id;
+    const defaultVoiceId = SUPPORTED_VOICES.find((v) => v.name === "Rachel")?.id;
     expect(settings.voiceId).toBe(defaultVoiceId);
   });
 
@@ -51,7 +51,7 @@ describe("voice-settings", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ voiceId: "invalid" }));
 
     const settings = getVoiceSettings();
-    const defaultVoiceId = SUPPORTED_VOICES.find((v) => v.name === "Bella")?.id;
+    const defaultVoiceId = SUPPORTED_VOICES.find((v) => v.name === "Rachel")?.id;
     expect(settings.voiceId).toBe(defaultVoiceId);
   });
 });

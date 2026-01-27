@@ -26,7 +26,7 @@ vi.mock("@speechos/core", () => ({
     on: vi.fn(() => vi.fn()), // Return unsubscribe function
     emit: vi.fn(),
   },
-  DEFAULT_TTS_VOICE_ID: "EXAVITQu4vr4xnSDxMaL", // Bella (default voice)
+  DEFAULT_TTS_VOICE_ID: "21m00Tcm4TlvDq8ikWAM", // Rachel (default voice)
 }));
 
 // Import mocked modules

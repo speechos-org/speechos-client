@@ -355,7 +355,10 @@ describe("Widget read-aloud action", () => {
       new MouseEvent("click", { bubbles: true, composed: true })
     );
 
-    expect(vi.mocked(tts.speak)).toHaveBeenCalledWith("Hello world");
+    expect(vi.mocked(tts.speak)).toHaveBeenCalledWith(
+      "Hello world",
+      expect.objectContaining({ voiceId: expect.any(String) })
+    );
   });
 
   it("should read full input value when no selection", async () => {
@@ -385,7 +388,10 @@ describe("Widget read-aloud action", () => {
       new MouseEvent("click", { bubbles: true, composed: true })
     );
 
-    expect(vi.mocked(tts.speak)).toHaveBeenCalledWith("Full input text");
+    expect(vi.mocked(tts.speak)).toHaveBeenCalledWith(
+      "Full input text",
+      expect.objectContaining({ voiceId: expect.any(String) })
+    );
   });
 
   it("should show stop state and call tts.stop", async () => {
@@ -606,7 +612,7 @@ describe("Widget no-audio warning", () => {
       expect(widget.settingsOpenFromWarning).toBe(false);
     });
 
-    it("should close settings on collapse when NOT opened from warning", () => {
+    it("should keep settings open on collapse when NOT opened from warning", () => {
       state.show();
       state.toggleExpanded(); // Expand widget
 
@@ -617,8 +623,8 @@ describe("Widget no-audio warning", () => {
       // Collapse the widget
       state.setState({ isExpanded: false });
 
-      // Settings should close because settingsOpenFromWarning is false
-      expect(widget.settingsOpen).toBe(false);
+      // Settings should remain open while modal is visible
+      expect(widget.settingsOpen).toBe(true);
     });
 
     it("should clear target elements when opening settings from warning", async () => {

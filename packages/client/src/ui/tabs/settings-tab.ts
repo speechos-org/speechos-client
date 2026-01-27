@@ -26,7 +26,11 @@ import {
   setVoiceId,
   SUPPORTED_VOICES,
 } from "../../stores/voice-settings.js";
+import { tts } from "../../tts-player.js";
 import "../audio-level-meter.js";
+
+const VOICE_PREVIEW_TEXT =
+  "Hi! I'm your SpeechOS voice. I can read out anything on this website for you";
 
 @customElement("speechos-settings-tab")
 export class SpeechOSSettingsTab extends LitElement {
@@ -214,6 +218,57 @@ export class SpeechOSSettingsTab extends LitElement {
       .settings-toggle.active .settings-toggle-knob {
         transform: translateX(20px);
       }
+
+      .voice-select-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .voice-select-row .settings-select-wrapper {
+        flex: 1;
+        margin-bottom: 0;
+      }
+
+      .voice-preview-button {
+        border: none;
+        border-radius: 999px;
+        background: #0d9488;
+        color: #ffffff;
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.15s ease,
+          box-shadow 0.15s ease;
+        white-space: nowrap;
+      }
+
+      .voice-preview-button:hover {
+        background: #0f766e;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+      }
+
+      .voice-preview-button:active {
+        transform: translateY(0);
+      }
+
+      .voice-preview-button.previewing {
+        background: #0f172a;
+      }
+
+      .voice-preview-button.previewing:hover {
+        background: #1e293b;
+      }
+
+      .voice-preview-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+      }
+
     `,
   ];
 
@@ -244,6 +299,9 @@ export class SpeechOSSettingsTab extends LitElement {
   @state()
   private smartFormatEnabled: boolean = true;
 
+  @state()
+  private isVoicePreviewing: boolean = false;
+
   private savedIndicatorTimeout: ReturnType<typeof setTimeout> | null = null;
   private unsubscribeSettingsLoaded: (() => void) | null = null;
 
@@ -267,6 +325,10 @@ export class SpeechOSSettingsTab extends LitElement {
       this.unsubscribeSettingsLoaded = null;
     }
     this.isTestingMic = false;
+    if (this.isVoicePreviewing) {
+      tts.stop();
+      this.isVoicePreviewing = false;
+    }
   }
 
   /** Called when tab becomes active */
@@ -277,6 +339,10 @@ export class SpeechOSSettingsTab extends LitElement {
   /** Called when tab becomes inactive */
   deactivate(): void {
     this.isTestingMic = false;
+    if (this.isVoicePreviewing) {
+      tts.stop();
+      this.isVoicePreviewing = false;
+    }
   }
 
   private async loadSettings(): Promise<void> {
@@ -365,7 +431,29 @@ export class SpeechOSSettingsTab extends LitElement {
     const select = event.target as HTMLSelectElement;
     this.selectedVoiceId = select.value;
     setVoiceId(this.selectedVoiceId);
+    if (this.isVoicePreviewing) {
+      tts.stop();
+      this.isVoicePreviewing = false;
+    }
     this.showSaved();
+  }
+
+  private async handleVoicePreviewClick(): Promise<void> {
+    if (this.isVoicePreviewing) {
+      tts.stop();
+      this.isVoicePreviewing = false;
+      return;
+    }
+
+    const voiceId = this.selectedVoiceId || getVoiceId();
+    this.isVoicePreviewing = true;
+    try {
+      await tts.speak(VOICE_PREVIEW_TEXT, { voiceId });
+    } catch (error) {
+      console.warn("[SpeechOS] Voice preview failed:", error);
+    } finally {
+      this.isVoicePreviewing = false;
+    }
   }
 
   private handleSmartFormatToggle(): void {
@@ -575,7 +663,20 @@ export class SpeechOSSettingsTab extends LitElement {
         <div class="settings-section-description">
           Choose the voice used for text-to-speech playback.
         </div>
-        ${this.renderVoiceSelector()}
+        <div class="voice-select-row">
+          ${this.renderVoiceSelector()}
+          <button
+            class="voice-preview-button ${this.isVoicePreviewing
+              ? "previewing"
+              : ""}"
+            @click="${this.handleVoicePreviewClick}"
+            aria-label="${this.isVoicePreviewing
+              ? "Stop voice preview"
+              : "Preview voice"}"
+          >
+            ${this.isVoicePreviewing ? "Stop" : "Preview"}
+          </button>
+        </div>
       </div>
 
       <div class="settings-section">
