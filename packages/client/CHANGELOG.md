@@ -1,5 +1,15 @@
 # @speechos/client
 
+## 0.2.12
+
+### Patch Changes
+
+- Add support for TTS to APIs and widget
+- Fix bugs with new read feature
+- Updated dependencies
+- Updated dependencies
+  - @speechos/core@0.2.11
+
 ## 0.2.11
 
 ### Patch Changes

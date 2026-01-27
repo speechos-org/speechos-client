@@ -1,5 +1,16 @@
 # @speechos/react
 
+## 1.0.11
+
+### Patch Changes
+
+- Add support for TTS to APIs and widget
+- Fix bugs with new read feature
+- Updated dependencies
+- Updated dependencies
+  - @speechos/client@0.2.12
+  - @speechos/core@0.2.11
+
 ## 1.0.10
 
 ### Patch Changes

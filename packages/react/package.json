@@ -1,6 +1,6 @@
 {
   "name": "@speechos/react",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "React hooks and components for SpeechOS voice integration",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -48,8 +48,8 @@
   "author": "SpeechOS",
   "license": "MIT",
   "peerDependencies": {
-    "@speechos/client": "^0.2.11",
-    "@speechos/core": "^0.2.10",
+    "@speechos/client": "^0.2.12",
+    "@speechos/core": "^0.2.11",
     "react": ">=18.0.0"
   },
   "peerDependenciesMeta": {
@@ -69,6 +69,6 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
-    "@speechos/core": "^0.2.10"
+    "@speechos/core": "^0.2.11"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@speechos/core",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Headless core SDK for SpeechOS - state, events, WebSocket integration",
   "type": "module",
   "main": "./dist/index.cjs",
