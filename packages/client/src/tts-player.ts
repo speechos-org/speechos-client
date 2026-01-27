@@ -10,6 +10,12 @@ import { tts as coreTTS, events, type TTSOptions } from "@speechos/core";
  * Options for speaking text (extends TTSOptions with playback options)
  */
 export interface SpeakOptions extends TTSOptions {
+  /** Voice ID. Server uses its default if not specified. */
+  voiceId?: string;
+  /** Language code (e.g., 'en', 'es', 'fr'). Defaults to 'en'. */
+  language?: string;
+  /** Optional abort signal for cancelling the request. */
+  signal?: AbortSignal;
   /** Output audio device ID (if supported by browser) */
   audioDeviceId?: string;
 }
@@ -350,7 +356,9 @@ export class TTSPlayer {
               return;
             }
             try {
-              sourceBuffer.appendBuffer(chunk);
+              const safeChunk = new Uint8Array(chunk.byteLength);
+              safeChunk.set(chunk);
+              sourceBuffer.appendBuffer(safeChunk.buffer);
             } catch (err) {
               appendError = err instanceof Error ? err : new Error("Failed to append audio buffer");
             }

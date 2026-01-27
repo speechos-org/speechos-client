@@ -272,7 +272,9 @@ describe("TTSPlayer", () => {
 
       await speakPromise;
 
-      expect(capturedSignal?.aborted).toBe(true);
+      expect(capturedSignal).not.toBeNull();
+      const signal = capturedSignal as unknown as AbortSignal;
+      expect(signal.aborted).toBe(true);
       expect(playbackCompleteHandler).not.toHaveBeenCalled();
     });
 

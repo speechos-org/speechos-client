@@ -12,6 +12,18 @@ import type { TextInputHandlerInterface } from "./text-input-handler.js";
  * Extends core config with widget-specific options
  */
 export interface SpeechOSClientConfig extends SpeechOSCoreConfig {
+  /** API key for authentication with SpeechOS backend (required) */
+  apiKey: string;
+  /** Optional user identifier for tracking which end user is using the SDK */
+  userId?: string;
+  /** Backend host URL for API calls (default: https://app.speechos.ai) */
+  host?: string;
+  /** Enable debug logging */
+  debug?: boolean;
+  /** Custom WebSocket factory for creating connections */
+  webSocketFactory?: SpeechOSCoreConfig["webSocketFactory"];
+  /** JWT token for server-side settings persistence */
+  settingsToken?: string;
   /** Command definitions for voice command matching. If provided, shows Command button in widget. */
   commands?: CommandDefinition[];
   /** Custom z-index for widget overlay (default: 999999) */
