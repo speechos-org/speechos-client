@@ -3,14 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  getVoiceSettings,
-  setVoiceSettings,
-  getVoiceId,
-  setVoiceId,
-  resetVoiceSettings,
-  SUPPORTED_VOICES,
-} from "./voice-settings.js";
+import { getVoiceSettings, setVoiceSettings, getVoiceId, setVoiceId, resetVoiceSettings, SUPPORTED_VOICES } from "./voice-settings.js";
 
 const STORAGE_KEY = "speechos_voice_settings";
 
