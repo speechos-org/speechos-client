@@ -60,10 +60,10 @@ describe("tts", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         "https://test.speechos.ai/api/tts/",
-        {
+        expect.objectContaining({
           method: "POST",
           headers: {
-            "Api-Key": "test-api-key",
+            "Authorization": "Api-Key test-api-key",
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -72,7 +72,7 @@ describe("tts", () => {
             language: "en",
             user_id: undefined,
           }),
-        }
+        })
       );
 
       expect(result.audio).toBe(mockArrayBuffer);
@@ -333,6 +333,34 @@ describe("tts", () => {
         message: "Invalid text",
         phase: "synthesize",
       });
+    });
+
+    it("should pass abort signal to fetch", async () => {
+      setConfig({ apiKey: "test-api-key" });
+
+      const controller = new AbortController();
+
+      const mockReader = {
+        read: vi.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: vi.fn(),
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: {
+          getReader: () => mockReader,
+        },
+      });
+
+      const generator = tts.stream("Hello", { signal: controller.signal });
+      await generator.next();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          signal: controller.signal,
+        })
+      );
     });
   });
 });

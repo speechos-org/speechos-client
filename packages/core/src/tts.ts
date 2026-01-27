@@ -22,6 +22,8 @@ export interface TTSOptions {
   voiceId?: string;
   /** Language code (e.g., 'en', 'es', 'fr'). Defaults to 'en'. */
   language?: string;
+  /** Optional abort signal for cancelling the request. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -101,6 +103,7 @@ export class TTSClient {
           "Authorization": `Api-Key ${config.apiKey}`,
           "Content-Type": "application/json",
         },
+        signal: options?.signal,
         body: JSON.stringify({
           text,
           voice_id: options?.voiceId,
@@ -141,6 +144,9 @@ export class TTSClient {
         contentType,
       };
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw error;
+      }
       // Re-throw if it's already our error
       if (error instanceof Error && error.message.includes("HTTP")) {
         throw error;
@@ -197,6 +203,7 @@ export class TTSClient {
           "Authorization": `Api-Key ${config.apiKey}`,
           "Content-Type": "application/json",
         },
+        signal: options?.signal,
         body: JSON.stringify({
           text,
           voice_id: options?.voiceId,
@@ -244,6 +251,9 @@ export class TTSClient {
       // Emit completion event
       events.emit("tts:synthesize:complete", { text });
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
       // Re-throw if it's already our error
       if (error instanceof Error && error.message.includes("HTTP")) {
         throw error;

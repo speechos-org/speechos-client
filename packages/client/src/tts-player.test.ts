@@ -49,6 +49,97 @@ class MockAudioContext {
 
 // Store original AudioContext
 const originalAudioContext = globalThis.AudioContext;
+const originalMediaSource = globalThis.MediaSource;
+const originalAudio = globalThis.Audio;
+const originalCreateObjectURL = globalThis.URL?.createObjectURL;
+const originalRevokeObjectURL = globalThis.URL?.revokeObjectURL;
+
+class MockSourceBuffer {
+  mode = "sequence";
+  updating = false;
+  private listeners = new Map<string, Set<() => void>>();
+
+  addEventListener(event: string, handler: () => void): void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)?.add(handler);
+  }
+
+  appendBuffer(_chunk: Uint8Array): void {
+    this.updating = true;
+    setTimeout(() => {
+      this.updating = false;
+      this.listeners.get("updateend")?.forEach((handler) => handler());
+    }, 0);
+  }
+}
+
+class MockMediaSource {
+  static isTypeSupported(type: string): boolean {
+    return type === "audio/mpeg";
+  }
+
+  readyState = "closed";
+  private listeners = new Map<string, Set<() => void>>();
+
+  constructor() {
+    setTimeout(() => {
+      this.readyState = "open";
+      this.listeners.get("sourceopen")?.forEach((handler) => handler());
+    }, 0);
+  }
+
+  addEventListener(event: string, handler: () => void): void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)?.add(handler);
+  }
+
+  addSourceBuffer(): MockSourceBuffer {
+    return new MockSourceBuffer();
+  }
+
+  endOfStream(): void {
+    this.readyState = "ended";
+  }
+}
+
+class MockAudio {
+  src = "";
+  preload = "";
+  private listeners = new Map<string, Set<() => void>>();
+  play = vi.fn().mockImplementation(() => {
+    setTimeout(() => {
+      this.listeners.get("playing")?.forEach((handler) => handler());
+    }, 0);
+    return Promise.resolve();
+  });
+  pause = vi.fn();
+  load = vi.fn();
+  setSinkId = vi.fn().mockResolvedValue(undefined);
+
+  addEventListener(event: string, handler: () => void): void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)?.add(handler);
+  }
+
+  emit(event: string): void {
+    this.listeners.get(event)?.forEach((handler) => handler());
+  }
+}
+
+let lastAudio: MockAudio | null = null;
+
+class TestAudio extends MockAudio {
+  constructor() {
+    super();
+    lastAudio = this;
+  }
+}
 
 describe("TTSPlayer", () => {
   let player: TTSPlayer;
@@ -63,6 +154,7 @@ describe("TTSPlayer", () => {
 
     // Mock AudioContext
     globalThis.AudioContext = MockAudioContext as unknown as typeof AudioContext;
+    globalThis.MediaSource = undefined as unknown as typeof MediaSource;
 
     // Reset mocks
     vi.clearAllMocks();
@@ -77,6 +169,15 @@ describe("TTSPlayer", () => {
 
     // Restore AudioContext
     globalThis.AudioContext = originalAudioContext;
+    globalThis.MediaSource = originalMediaSource as unknown as typeof MediaSource;
+    globalThis.Audio = originalAudio as unknown as typeof Audio;
+    if (originalCreateObjectURL) {
+      globalThis.URL.createObjectURL = originalCreateObjectURL;
+    }
+    if (originalRevokeObjectURL) {
+      globalThis.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+    lastAudio = null;
   });
 
   describe("isPlaying", () => {
@@ -103,6 +204,76 @@ describe("TTSPlayer", () => {
       expect(coreTTS.synthesize).toHaveBeenCalledWith("Hello", undefined);
       expect(playbackStartHandler).toHaveBeenCalledWith({ text: "Hello" });
       expect(playbackCompleteHandler).toHaveBeenCalledWith({ text: "Hello" });
+    });
+
+    it("should stream and play audio when MediaSource is supported", async () => {
+      globalThis.MediaSource = MockMediaSource as unknown as typeof MediaSource;
+      globalThis.Audio = TestAudio as unknown as typeof Audio;
+      globalThis.URL.createObjectURL = vi.fn().mockReturnValue("blob:tts-audio");
+      globalThis.URL.revokeObjectURL = vi.fn();
+
+      const chunk1 = new Uint8Array([1, 2, 3]);
+      const chunk2 = new Uint8Array([4, 5, 6]);
+
+      (coreTTS.stream as ReturnType<typeof vi.fn>).mockImplementation(async function* () {
+        yield chunk1;
+        yield chunk2;
+      });
+
+      const playbackStartHandler = vi.fn();
+      const playbackCompleteHandler = vi.fn();
+      events.on("tts:playback:start", playbackStartHandler);
+      events.on("tts:playback:complete", playbackCompleteHandler);
+
+      const speakPromise = player.speak("Hello");
+
+      await new Promise((r) => setTimeout(r, 10));
+      lastAudio?.emit("ended");
+
+      await speakPromise;
+
+      expect(coreTTS.stream).toHaveBeenCalledWith(
+        "Hello",
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        })
+      );
+      expect(coreTTS.synthesize).not.toHaveBeenCalled();
+      expect(playbackStartHandler).toHaveBeenCalledWith({ text: "Hello" });
+      expect(playbackCompleteHandler).toHaveBeenCalledWith({ text: "Hello" });
+    });
+
+    it("should stop streaming playback cleanly", async () => {
+      globalThis.MediaSource = MockMediaSource as unknown as typeof MediaSource;
+      globalThis.Audio = TestAudio as unknown as typeof Audio;
+      globalThis.URL.createObjectURL = vi.fn().mockReturnValue("blob:tts-audio");
+      globalThis.URL.revokeObjectURL = vi.fn();
+
+      let capturedSignal: AbortSignal | null = null;
+      (coreTTS.stream as ReturnType<typeof vi.fn>).mockImplementation(async function* (
+        _text: string,
+        options?: { signal?: AbortSignal }
+      ) {
+        capturedSignal = options?.signal ?? null;
+        yield new Uint8Array([1, 2, 3]);
+        if (capturedSignal) {
+          await new Promise<void>((resolve) => {
+            capturedSignal?.addEventListener("abort", () => resolve(), { once: true });
+          });
+        }
+      });
+
+      const playbackCompleteHandler = vi.fn();
+      events.on("tts:playback:complete", playbackCompleteHandler);
+
+      const speakPromise = player.speak("Hello");
+      await new Promise((r) => setTimeout(r, 5));
+      player.stop();
+
+      await speakPromise;
+
+      expect(capturedSignal?.aborted).toBe(true);
+      expect(playbackCompleteHandler).not.toHaveBeenCalled();
     });
 
     it("should pass options to synthesize", async () => {
